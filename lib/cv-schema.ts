@@ -3,16 +3,19 @@ import * as z from "zod";
 import { DesignSchema } from "./design";
 
 /**
- * Ein Schema für drei Zwecke: TypeScript-Typen, Validierung beim Lesen der
- * JSON-Dateien, und via `zodOutputFormat()` das JSON-Schema für Claudes
- * Structured Outputs.
+ * One schema for three purposes: TypeScript types, validation when reading the
+ * JSON files, and — through `zodOutputFormat()` — the JSON Schema for Claude's
+ * structured outputs.
  *
- * Zwei Regeln, weil das Schema an die API geht:
- *   - Keine `.min()` / `.max()` / `.email()` Constraints — Structured Outputs
- *     unterstützen die nicht.
- *   - Optionale Werte als `.nullable()`, nicht `.optional()`. Das Modell muss
- *     das Feld dann explizit auf null setzen statt es wegzulassen, was mit
- *     `additionalProperties: false` deutlich zuverlässiger ist.
+ * Two rules, because the schema goes to the API:
+ *   - No `.min()` / `.max()` / `.email()` constraints — structured outputs do
+ *     not support them.
+ *   - Optional values as `.nullable()`, not `.optional()`. The model then has to
+ *     set the field to null explicitly instead of omitting it, which is far more
+ *     reliable together with `additionalProperties: false`.
+ *
+ * The `.describe()` texts stay in German: they are part of the schema sent to
+ * Claude and steer the wording of the generated CV.
  */
 
 export const LinkSchema = z.object({
@@ -89,7 +92,7 @@ export const CvSchema = z.object({
   certifications: z.array(CertificationSchema),
 });
 
-/** Was `/api/tailor` von Claude zurückbekommt. */
+/** What `/api/tailor` gets back from Claude. */
 export const TailoringResultSchema = z.object({
   cv: CvSchema.describe("Der zugeschnittene Lebenslauf"),
   rationale: z
@@ -114,7 +117,7 @@ export const CoverLetterSchema = z.object({
   closing: z.string().describe('Grußformel, z.B. "Mit freundlichen Grüßen"'),
 });
 
-/** Was pro Bewerbung auf der Platte liegt (`data/applications/<slug>.json`). */
+/** What sits on disk per application (`data/applications/<slug>.json`). */
 export const ApplicationSchema = z.object({
   slug: z.string(),
   company: z.string(),
@@ -128,9 +131,9 @@ export const ApplicationSchema = z.object({
   gaps: z.array(z.string()),
   coverLetter: CoverLetterSchema.nullable(),
   /**
-   * Design-Abweichung nur für diese Bewerbung — null bedeutet: globale
-   * Einstellung aus data/design.json. `.default(null)` hält ältere bzw. von
-   * Hand geschriebene Dateien ohne das Feld gültig.
+   * Design override for this application only — null means the global setting
+   * from data/design.json. `.default(null)` keeps older or hand-written files
+   * without the field valid.
    */
   design: DesignSchema.nullable().default(null),
 });

@@ -46,12 +46,12 @@ export async function POST(req: Request) {
         body.target === "cv" ? `${slug}-lebenslauf.pdf` : `${slug}-anschreiben.pdf`;
     }
 
-    // Die Ränder kommen aus dem Design, damit die Einstellung im PDF wirkt.
+    // The margins come from the design so the setting takes effect in the PDF.
     const design = await resolveDesign(application);
     const pdf = await renderPdf(`${origin}${previewPath}`, design.margin);
 
-    // Zusätzlich zur Download-Antwort auf die Platte, damit man Versionen
-    // vergleichen kann ohne jedes Mal neu zu exportieren.
+    // Written to disk alongside the download response, so versions can be
+    // compared without exporting again every time.
     await fs.mkdir(EXPORT_DIR, { recursive: true });
     const savedTo = path.join(EXPORT_DIR, filename);
     await fs.writeFile(savedTo, pdf);
@@ -82,8 +82,8 @@ async function renderPdf(url: string, marginMm: number): Promise<Buffer> {
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      // Ränder kommen von hier statt aus dem CSS, damit sie auf jeder Seite
-      // greifen und nicht nur oben auf Seite 1.
+      // Margins come from here rather than from the CSS so they apply to every
+      // page, not just to the top of page 1.
       margin: {
         top: `${marginMm}mm`,
         bottom: `${marginMm}mm`,

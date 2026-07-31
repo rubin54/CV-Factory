@@ -1,7 +1,10 @@
 /**
- * Alle System-Prompts an einem Ort. Diese Strings sind der Cache-Präfix jedes
- * Requests — sie dürfen sich zwischen zwei Aufrufen nicht ändern, sonst ist der
- * Prompt-Cache wertlos. Nichts hier interpolieren.
+ * All system prompts in one place. These strings are the cache prefix of every
+ * request — they must not change between two calls, or the prompt cache is
+ * worthless. Interpolate nothing here.
+ *
+ * The prompts themselves stay in German on purpose: Claude answers in the
+ * language it is addressed in, and the CVs are written for German applications.
  */
 
 const NO_INVENTION = `

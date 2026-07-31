@@ -1,4 +1,4 @@
-/** "2021-03" -> "03/2021". Alles andere kommt unverändert zurück. */
+/** "2021-03" -> "03/2021". Anything else is returned unchanged. */
 export function formatMonth(value: string | null, fallback = ""): string {
   if (!value) return fallback;
   const match = /^(\d{4})-(\d{2})$/.exec(value.trim());
@@ -13,7 +13,7 @@ export function formatRange(start: string | null, end: string | null): string {
   return `${from} – ${to}`;
 }
 
-/** Entfernt das Protokoll für die Anzeige, behält es aber im href. */
+/** Strips the protocol for display; the href keeps it. */
 export function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 }

@@ -10,8 +10,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Läuft vor dem ersten Paint und setzt das Farbschema, sonst blitzt beim Laden
- * kurz die helle Oberfläche auf. Ohne gespeicherte Wahl gilt die Systemvorgabe.
+ * Runs before the first paint and sets the colour scheme; otherwise the light UI
+ * flashes up briefly while loading. Without a stored choice the system setting
+ * applies.
  */
 const THEME_SCRIPT = `
 try {

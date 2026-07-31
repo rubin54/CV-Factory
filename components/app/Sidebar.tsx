@@ -30,7 +30,7 @@ export function Sidebar() {
 
       <nav className="flex flex-1 flex-col gap-0.5">
         {NAV.map((item) => {
-          // "/" darf nicht bei jedem Pfad aktiv sein.
+          // "/" must not be active on every path.
           const active =
             item.href === "/"
               ? pathname === "/" || pathname.startsWith("/applications")

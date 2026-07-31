@@ -11,8 +11,8 @@ export const maxDuration = 300;
 const BodySchema = z.object({ rawText: z.string().min(1, "Notizen sind leer") });
 
 /**
- * Notizen -> CV-Schema. Speichert bewusst NICHT: das Ergebnis geht zur Ansicht
- * zurück, übernehmen tut es der Mensch.
+ * Notes -> CV schema. Deliberately does NOT save: the result goes back for
+ * review, and the human accepts it.
  */
 export async function POST(req: Request) {
   try {

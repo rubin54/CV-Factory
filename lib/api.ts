@@ -5,8 +5,8 @@ import { ClaudeError } from "./claude";
 import { StoreValidationError } from "./store";
 
 /**
- * Übersetzt alles, was in einer Route hochkommen kann, in eine Antwort mit einer
- * Meldung, die die UI direkt anzeigen kann. Kein Stacktrace an den Browser.
+ * Turns anything a route can throw into a response carrying a message the UI can
+ * show as-is. No stack traces to the browser.
  */
 export function errorResponse(err: unknown): NextResponse {
   if (err instanceof ClaudeError) {
@@ -30,7 +30,7 @@ export function errorResponse(err: unknown): NextResponse {
   );
 }
 
-/** Liest und validiert den Request-Body. Wirft ZodError bei Fehlschlag. */
+/** Reads and validates the request body. Throws ZodError on failure. */
 export async function parseBody<T>(req: Request, schema: z.ZodType<T>): Promise<T> {
   let raw: unknown;
   try {

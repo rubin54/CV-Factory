@@ -15,11 +15,11 @@ import {
 } from "./shared";
 
 /**
- * Ein Abschnitt = Inhalt + Darstellungsvariante. Weil die Templates hier nur
- * noch IDs durchreichen, kommen Reihenfolge und Spaltenzuordnung aus den
- * Design-Einstellungen statt aus dem Template.
+ * A section = content + presentation variant. Because the templates only pass
+ * IDs through here, order and column assignment come from the design settings
+ * instead of from the template.
  *
- * Leere Abschnitte rendern nichts — kein Titel ohne Inhalt.
+ * Empty sections render nothing — no heading without content.
  */
 export function SectionBlock({
   id,
@@ -32,14 +32,14 @@ export function SectionBlock({
   cv: Cv;
   design: Design;
   variant: SectionVariant;
-  /** Erlaubt Templates, Abschnitte einzupacken (z.B. in getönte Kacheln). */
+  /** Lets templates wrap sections (in tinted tiles, for instance). */
   wrapper?: (props: { children: ReactNode }) => ReactNode;
 }) {
   const body = renderBody(id, cv, design, variant);
   if (!body) return null;
 
-  // Im Timeline-Layout trägt der Titel eine volle Linie und steht über dem
-  // Raster; sonst sitzt er direkt über dem Inhalt.
+  // In the timeline layout the heading carries a full rule and sits above the
+  // grid; otherwise it sits directly on top of the content.
   return (
     <Wrapper>
       <section className="doc-section">
@@ -82,7 +82,7 @@ function renderBody(
   }
 }
 
-/** Zeile im Timeline-Layout: linke Spalte (Zeitraum), rechte Spalte (Inhalt). */
+/** Row in the timeline layout: left column (date range), right column (content). */
 function TimelineRow({ label, children }: { label?: string; children: ReactNode }) {
   return (
     <div className="doc-entry doc-timeline">
@@ -354,5 +354,5 @@ function LinkList({
   );
 }
 
-/** Kontaktangaben stehen in der Kopfzeile, nicht als sortierbarer Abschnitt. */
+/** Contact details live in the header, not as a sortable section. */
 export { ContactBlock };

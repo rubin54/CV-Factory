@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Tokens der Oberfläche
+   UI tokens
 
-   Streng getrennt von den Dokument-Tokens weiter unten: der Lebenslauf wird
-   gedruckt und bleibt deshalb in jedem Modus weiß mit dunkler Schrift. Was
-   hier steht, betrifft nur die Hülle drumherum.
+   Strictly separate from the document tokens further down: the CV gets printed
+   and therefore stays white with dark text in every mode. What is defined here
+   only affects the shell around it.
    =========================================================================== */
 
 :root {
@@ -52,7 +52,7 @@
   --app-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
 }
 
-/* Als Tailwind-Farben verfügbar machen: bg-surface, text-muted, border-line … */
+/* Expose them as Tailwind colours: bg-surface, text-muted, border-line … */
 @theme inline {
   --color-app: var(--app-bg);
   --color-surface: var(--app-surface);
@@ -80,8 +80,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Einheitlicher Fokusring statt Browser-Default, damit Tastaturbedienung
-   sichtbar bleibt ohne bei Mausklicks zu blitzen. */
+/* One consistent focus ring instead of the browser default, so keyboard use
+   stays visible without flashing on mouse clicks. */
 :where(button, a, input, textarea, select, [tabindex]):focus-visible {
   outline: 2px solid var(--app-ring);
   outline-offset: 2px;
@@ -89,10 +89,9 @@ body {
 }
 
 /* ===========================================================================
-   Dokument-Grundlagen
-   Alle Größen und Farben kommen aus CSS-Variablen, die `designToCssVars()`
-   auf `.doc-shell` setzt. Templates unterscheiden sich nur im Aufbau, nicht in
-   den Tokens.
+   Document basics
+   All sizes and colours come from CSS variables that `designToCssVars()` sets
+   on `.doc-shell`. Templates differ only in structure, not in tokens.
    =========================================================================== */
 
 .doc-shell {
@@ -123,8 +122,8 @@ body {
   font-family: var(--font-display), serif;
 }
 
-/* Für Daten, Tech-Listen und Kontaktzeilen: gleiche Ziffernbreite, damit
-   rechtsbündige Zeiträume untereinander stehen. */
+/* For dates, tech lists and contact lines: equal digit widths, so that
+   right-aligned date ranges line up. */
 .doc-mono {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
@@ -143,7 +142,7 @@ body {
   margin-top: var(--doc-section-gap);
 }
 
-/* Der erste Abschnitt einer Spalte schließt direkt an die Kopfzeile an. */
+/* The first section of a column butts straight up against the header. */
 main > .doc-section:first-child,
 aside > .doc-section:first-child,
 .doc-tile:first-child .doc-section,
@@ -160,13 +159,13 @@ aside > .doc-section:first-child,
   margin-top: var(--doc-entry-gap);
 }
 
-/* Ein Abschnittstitel darf nicht allein am Seitenende stehen. */
+/* A section heading must not sit alone at the bottom of a page. */
 .doc-heading {
   break-after: avoid;
   page-break-after: avoid;
 }
 
-/* Stichpunkte mit eigenem Marker statt Browser-Bullet. */
+/* Bullets with a custom marker instead of the browser bullet. */
 .doc-bullets {
   list-style: none;
   padding: 0;
@@ -192,8 +191,8 @@ aside > .doc-section:first-child,
   margin-top: 0.15em;
 }
 
-/* Symbole in Kontakt- und Linkzeilen. Auf der Grundlinie ausgerichtet, damit
-   sie neben dem Text sitzen statt darüber zu schweben. */
+/* Icons in contact and link lines. Aligned to the baseline so they sit next to
+   the text instead of floating above it. */
 .doc-icon {
   width: 0.95em;
   height: 0.95em;
@@ -202,7 +201,7 @@ aside > .doc-section:first-child,
   color: var(--accent);
 }
 
-/* Kenntnisse im Hauptteil: Kategorie links, Einträge rechts. */
+/* Skills in the main column: category on the left, entries on the right. */
 .doc-skill-grid {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -211,19 +210,19 @@ aside > .doc-section:first-child,
 }
 
 /* ===========================================================================
-   Abschnittstitel
+   Section headings
 
-   Sperrung bewusst bei 0.08em: ab etwa 0.11em schreibt Chromium jeden
-   Buchstaben einzeln ins PDF, und die Textextraktion — also auch jeder
-   ATS-Parser — liest dann "B E R U F S E R F A H R U N G" statt
-   "BERUFSERFAHRUNG". Gemessen, nicht geraten.
+   Tracking deliberately at 0.08em: from roughly 0.11em upwards Chromium writes
+   every glyph separately into the PDF, and text extraction — every ATS parser
+   included — then reads "B E R U F S E R F A H R U N G" instead of
+   "BERUFSERFAHRUNG". Measured, not guessed.
    =========================================================================== */
 
 .doc-h2 {
   letter-spacing: 0.08em;
 }
 
-/* Die Variante für die Vorlagen mit Mono-Titeln. */
+/* The variant used by the templates with mono headings. */
 .tpl-linear .doc-h2,
 .tpl-kompakt .doc-h2,
 .tpl-akzent .doc-h2,
@@ -235,10 +234,10 @@ aside > .doc-section:first-child,
   color: var(--accent);
 }
 
-/* ---- Spaltenlayout --------------------------------------------------------
-   Im DOM steht IMMER der Hauptteil zuerst, die Seitenspalte danach. Die
-   optische Anordnung macht das Raster. Dadurch liest ein PDF-Parser die
-   Berufserfahrung vor der Kenntnisliste.
+/* ---- Column layout ---------------------------------------------------------
+   In the DOM the main column ALWAYS comes first and the sidebar after it; the
+   grid does the visual arrangement. That way a PDF parser reads the work
+   experience before the skills list.
    --------------------------------------------------------------------------- */
 
 .doc-columns {
@@ -251,7 +250,7 @@ aside > .doc-section:first-child,
   grid-row: 1;
 }
 
-/* Seitenspalte links (Kompakt, Akzent) */
+/* Sidebar on the left (Kompakt, Akzent) */
 .tpl-kompakt .doc-columns {
   grid-template-columns: 52mm 1fr;
   column-gap: 8mm;
@@ -272,7 +271,7 @@ aside > .doc-section:first-child,
   grid-column: 2;
 }
 
-/* Seitenspalte rechts (Dicht) */
+/* Sidebar on the right (Dicht) */
 .tpl-dicht .doc-columns {
   grid-template-columns: 1fr 54mm;
   column-gap: 7mm;
@@ -288,11 +287,11 @@ aside > .doc-section:first-child,
 
 /* ---- Template „klassik" --------------------------------------------------- */
 
-/* Bewusst `text-transform` statt `font-variant-caps: all-small-caps`:
-   Chromium synthetisiert Kapitälchen glyphenweise, und im PDF steht danach
-   "B E R U F S E R F A H R U N G" — für jeden Parser unlesbar. Gemessen: mit
-   Kapitälchen zerlegt, mit uppercase intakt. Optisch ist der Unterschied
-   gering, im extrahierten Text ist er entscheidend. */
+/* Deliberately `text-transform` rather than `font-variant-caps: all-small-caps`:
+   Chromium synthesises small caps glyph by glyph, and the PDF then contains
+   "B E R U F S E R F A H R U N G" — unreadable to any parser. Measured: broken
+   with small caps, intact with uppercase. Visually the difference is small; in
+   the extracted text it is decisive. */
 .tpl-klassik .doc-h2 {
   font-family: var(--font-display), serif;
   text-transform: uppercase;
@@ -312,8 +311,8 @@ aside > .doc-section:first-child,
   margin-bottom: 10px;
 }
 
-/* Feste Datumsspalte links, Inhalt rechts — die Struktur, die dem Template
-   seine Ruhe gibt. */
+/* Fixed date column on the left, content on the right — the structure that
+   gives this template its calm. */
 .tpl-linear .doc-timeline {
   display: grid;
   grid-template-columns: 27mm 1fr;
@@ -322,8 +321,8 @@ aside > .doc-section:first-child,
 
 /* ---- Template „kompakt" --------------------------------------------------- */
 
-/* Haarlinie statt gefüllter Spalte: eine Füllung würde beim Seitenumbruch
-   abreißen, die Linie wächst einfach mit. */
+/* A hairline instead of a filled column: a fill would tear off at a page break,
+   whereas the rule simply grows along. */
 .tpl-kompakt .doc-aside {
   border-right: 1px solid var(--rule);
   padding-right: 7mm;
@@ -346,10 +345,9 @@ aside > .doc-section:first-child,
 
 /* ---- Template „akzent" ---------------------------------------------------- */
 
-/* Kein randloser Anschnitt: der ginge nur mit Seitenrand 0, und die Ränder
-   kommen von Puppeteer, damit sie auf jeder Seite greifen. Das Band ist
-   deshalb ein Block innerhalb des Satzspiegels — auf dem Bildschirm und im
-   PDF identisch. */
+/* No full bleed: that would require a page margin of 0, and the margins come
+   from Puppeteer so they apply to every page. The band is therefore a block
+   inside the text area — identical on screen and in the PDF. */
 .tpl-akzent .doc-band {
   background: var(--accent);
   color: var(--on-accent);
@@ -365,8 +363,8 @@ aside > .doc-section:first-child,
   border-bottom-color: color-mix(in srgb, var(--on-accent) 40%, transparent);
 }
 
-/* Getönte Blöcke statt einer durchgehend getönten Spalte — so bricht die
-   Fläche beim Seitenumbruch sauber um. */
+/* Tinted blocks instead of one continuously tinted column — that way the fill
+   breaks cleanly across pages. */
 .tpl-akzent .doc-tile {
   background: var(--accent-soft);
   padding: 3.5mm 4mm;
@@ -396,7 +394,7 @@ aside > .doc-section:first-child,
   padding-left: 6mm;
 }
 
-/* ---- Foto ----------------------------------------------------------------- */
+/* ---- Photo ---------------------------------------------------------------- */
 
 .doc-photo {
   object-fit: cover;
@@ -407,13 +405,13 @@ aside > .doc-section:first-child,
   border-radius: 999px;
 }
 
-/* ---- Druck ---------------------------------------------------------------- */
+/* ---- Print ---------------------------------------------------------------- */
 
 @media print {
   body {
     background: #fff;
   }
-  /* Ränder liefert Puppeteer, damit sie auf jeder Seite greifen. */
+  /* Puppeteer supplies the margins so they apply to every page. */
   .doc-shell {
     width: auto;
     padding: 0;

@@ -6,11 +6,11 @@ import { SectionBlock } from "./sections";
 import { ContactBlock, DocShell, Photo, type TemplateProps } from "./shared";
 
 /**
- * Farbiges Kopfband, getönte Kacheln in der Seitenspalte, größere Typo.
+ * Coloured header band, tinted tiles in the sidebar, larger type.
  *
- * Die Tönung sitzt bewusst auf den einzelnen Kacheln und nicht auf der ganzen
- * Spalte: eine durchgehende Fläche reißt beim Seitenumbruch am Seitenende ab,
- * Kacheln wandern sauber auf die nächste Seite.
+ * The tint sits on the individual tiles rather than on the whole column on
+ * purpose: a continuous fill tears off at the bottom of the page on a break,
+ * whereas tiles move onto the next page cleanly.
  */
 export function AkzentTemplate({ cv, design, photoUrl }: TemplateProps) {
   const { basics } = cv;

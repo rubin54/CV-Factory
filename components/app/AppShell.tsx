@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 
 /**
- * Rahmen jeder Seite: Seitenleiste links, darin die Navigation mit aktivem
- * Zustand, rechts eine Kopfzeile und der Inhalt.
+ * Frame of every page: sidebar on the left carrying the navigation with its
+ * active state, header and content on the right.
  *
- * Die Kopfzeile klebt oben — bei den langen Editorseiten weiß man sonst nach
- * ein paar Bildschirmhöhen nicht mehr, wo man ist.
+ * The header sticks to the top — on the long editor pages you otherwise lose
+ * track of where you are after a couple of screen heights.
  */
 export function AppShell({
   title,
@@ -17,7 +17,7 @@ export function AppShell({
 }: {
   title: string;
   subtitle?: ReactNode;
-  /** Aktionen rechts in der Kopfzeile. */
+  /** Actions on the right of the header. */
   toolbar?: ReactNode;
   children: ReactNode;
 }) {

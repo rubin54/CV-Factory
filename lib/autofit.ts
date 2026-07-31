@@ -2,19 +2,19 @@ import type { Design } from "./design";
 import { computePageBreaks } from "./paginate";
 
 /**
- * Sucht die großzügigste Kombination aus Schriftgröße, Zeilenabstand und
- * Abständen, mit der der Lebenslauf noch auf die gewünschte Seitenzahl passt.
+ * Finds the most generous combination of font size, line height and spacing
+ * that still fits the CV onto the requested number of pages.
  *
- * Gemessen wird am echten Layout: die CSS-Variablen werden direkt am
- * Dokumentknoten gesetzt und die Höhe ausgelesen, ohne React dazwischen. Ein
- * Durchlauf sind rund zwei Dutzend Messungen — schnell genug für einen Klick.
+ * Measured against the real layout: the CSS variables are set directly on the
+ * document node and the height read back, with no React in between. One run is
+ * roughly two dozen measurements — fast enough for a single click.
  */
 
 const RANGE = {
   fontSize: [8.5, 12] as const,
   lineHeight: [1.22, 1.62] as const,
   spacing: [0.55, 1.5] as const,
-  /** Der zweite Durchlauf darf über den gekoppelten Wert hinausgehen. */
+  /** The second pass may go beyond the coupled value. */
   lineHeightMax: 1.8,
 };
 
@@ -22,16 +22,16 @@ export type FitResult = {
   fontSize: number;
   lineHeight: number;
   spacing: number;
-  /** Seitenzahl, die dabei herauskommt. */
+  /** Page count this results in. */
   pages: number;
-  /** Wurde die Zielseitenzahl erreicht? */
+  /** Was the target page count reached? */
   fits: boolean;
 };
 
 /**
- * Ein Regler von „so eng wie vertretbar" bis „luftig". Die drei Größen wandern
- * gemeinsam, damit keine Kombination entsteht, die niemand so einstellen würde
- * — winzige Schrift mit riesigem Zeilenabstand zum Beispiel.
+ * One dial from "as tight as defensible" to "airy". The three values move
+ * together so that no combination arises that nobody would choose by hand —
+ * tiny type with a huge line height, for instance.
  */
 function paramsAt(t: number) {
   const at = ([min, max]: readonly [number, number]) => min + t * (max - min);
@@ -54,7 +54,7 @@ export function autoFit({
   scale,
   targetPages,
 }: {
-  /** Der Knoten, der das Dokument enthält (derselbe wie für die Umbrüche). */
+  /** The node containing the document (the same one used for the breaks). */
   node: HTMLElement;
   design: Design;
   pageHeight: number;
@@ -78,12 +78,12 @@ export function autoFit({
     shell.style.setProperty("--doc-leading", String(lineHeight));
     shell.style.setProperty("--doc-section-gap", `${(spacing * 17).toFixed(1)}px`);
     shell.style.setProperty("--doc-entry-gap", `${(spacing * 12).toFixed(1)}px`);
-    void shell.offsetHeight; // Layout erzwingen, bevor gemessen wird
+    void shell.offsetHeight; // force layout before measuring
     return computePageBreaks(node, pageHeight, scale).length + 1;
   };
 
   try {
-    // Durchlauf 1: größtes t, bei dem die Seitenzahl noch stimmt.
+    // Pass 1: the largest t at which the page count still holds.
     let low = 0;
     let high = 1;
     let best = paramsAt(0);
@@ -104,9 +104,9 @@ export function autoFit({
         }
       }
 
-      // Durchlauf 2: Schriftgröße festhalten, Zeilenabstand aufmachen, solange
-      // es passt. Das nutzt den Rest der Seite für Lesbarkeit statt für Luft
-      // am Seitenende.
+      // Pass 2: hold the font size, open up the line height for as long as it
+      // still fits. That spends the rest of the page on readability instead of
+      // leaving air at the bottom.
       let lineLow = best.lineHeight;
       let lineHigh = RANGE.lineHeightMax;
       for (let i = 0; i < 12; i++) {
@@ -124,7 +124,7 @@ export function autoFit({
 
     return { ...best, pages: bestPages, fits };
   } finally {
-    // Die Vorschau gehört React — die direkt gesetzten Werte wieder entfernen.
+    // The preview belongs to React — remove the directly set values again.
     shell.style.setProperty("--doc-size", original.size);
     shell.style.setProperty("--doc-leading", original.leading);
     shell.style.setProperty("--doc-section-gap", original.sectionGap);

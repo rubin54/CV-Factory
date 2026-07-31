@@ -18,8 +18,8 @@ const ToastContext = createContext<{
 } | null>(null);
 
 /**
- * Kurze Einblendungen statt Banner im Inhalt: eine Erfolgsmeldung soll nicht
- * das halbe Formular nach unten schieben und danach stehen bleiben.
+ * Short toasts instead of banners inside the content: a success message should
+ * not push half the form down and then stay there.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -27,7 +27,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((kind: ToastKind, message: string) => {
     const id = Date.now() + Math.floor(performance.now() * 1000) % 1000;
     setToasts((current) => [...current, { id, kind, message }]);
-    // Fehler bleiben länger stehen — die will man wirklich lesen.
+    // Errors stay longer — those you actually want to read.
     const ttl = kind === "error" ? 9000 : 4000;
     setTimeout(() => setToasts((current) => current.filter((t) => t.id !== id)), ttl);
   }, []);

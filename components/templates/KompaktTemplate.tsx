@@ -4,12 +4,12 @@ import { SectionBlock } from "./sections";
 import { ContactBlock, DocShell, Photo, type TemplateProps } from "./shared";
 
 /**
- * Kopfzeile über die volle Breite, darunter eine schmale Spalte für alles, was
- * man nur nachschlägt, und rechts der Fließtext.
+ * Full-width header, below it a narrow column for everything you only look up,
+ * and the running text on the right.
  *
- * Im DOM steht der Hauptteil VOR der Seitenspalte — die Spalte wird per CSS
- * nach links gesetzt. So liest ein Parser (und jeder, der den PDF-Text
- * kopiert) zuerst die Berufserfahrung und nicht die Kenntnisliste.
+ * In the DOM the main column comes BEFORE the sidebar — the sidebar is placed
+ * on the left by CSS. That way a parser (and anyone copying the PDF text) reads
+ * the work experience first, not the skills list.
  */
 export function KompaktTemplate({ cv, design, photoUrl }: TemplateProps) {
   const { basics } = cv;

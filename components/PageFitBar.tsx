@@ -8,8 +8,8 @@ import { autoFit } from "@/lib/autofit";
 import type { Design } from "@/lib/design";
 
 /**
- * Zeigt die Seitenzahl und bietet den Auto-Fit an. Ohne das sieht man erst im
- * exportierten PDF, ob man auf einer Seite landet.
+ * Shows the page count and offers the auto-fit. Without it you only find out
+ * whether you land on one page once the PDF is exported.
  */
 export function PageFitBar({
   label,

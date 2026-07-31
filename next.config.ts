@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Puppeteer darf nicht in das Server-Bundle gebündelt werden — es lädt sein
-  // Chromium zur Laufzeit aus node_modules.
+  // Puppeteer must not be bundled into the server bundle — it loads its Chromium
+  // from node_modules at runtime.
   serverExternalPackages: ["puppeteer"],
-  // Ohne das rät Next die Workspace-Wurzel anhand von Lockfiles und landet im
-  // Home-Verzeichnis, weil dort ein package-lock.json liegt.
+  // Without this Next guesses the workspace root from lockfiles and ends up in
+  // the home directory, because there is a package-lock.json there.
   turbopack: { root: import.meta.dirname },
 };
 

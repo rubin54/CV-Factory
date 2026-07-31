@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 type Theme = "light" | "dark";
 
 /**
- * Das Skript in `layout.tsx` setzt `data-theme` schon vor dem ersten Paint —
- * hier wird nur noch gelesen und umgeschaltet, damit nichts aufblitzt.
+ * The script in `layout.tsx` sets `data-theme` before the first paint — here it
+ * is only read and toggled, so nothing flashes.
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");

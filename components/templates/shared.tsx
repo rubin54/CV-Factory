@@ -5,20 +5,20 @@ import type { Design } from "@/lib/design";
 import { designToCssVars } from "@/lib/design";
 import { displayUrl, withProtocol } from "@/lib/format";
 
-/** Was jedes Template als Props bekommt. */
+/** What every template receives as props. */
 export type TemplateProps = {
   cv: Cv;
   design: Design;
-  /** URL des Bewerbungsfotos, oder null wenn keines hinterlegt ist. */
+  /** URL of the photo, or null when none is stored. */
   photoUrl: string | null;
 };
 
-/** Wie ein Abschnitt dargestellt wird — bestimmt vom Template, nicht vom Inhalt. */
+/** How a section is rendered — decided by the template, not by the content. */
 export type SectionVariant = "main" | "aside" | "timeline";
 
 /**
- * Setzt die Design-Variablen und die Template-Klasse. Alles darunter liest nur
- * noch `var(--…)` — deshalb wirkt jede Einstellung in allen Templates gleich.
+ * Sets the design variables and the template class. Everything below only reads
+ * `var(--…)` — which is why every setting behaves the same in all templates.
  */
 export function DocShell({
   design,
@@ -50,7 +50,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <h2 className="doc-h2 doc-heading">{children}</h2>;
 }
 
-/** Titelzeile eines Eintrags: Bezeichnung links, Zeitraum rechts. */
+/** Heading line of an entry: label on the left, date range on the right. */
 export function EntryHead({ left, right }: { left: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
@@ -75,7 +75,7 @@ export function Bullets({ items }: { items: string[] }) {
   );
 }
 
-/** Tech-Stacks und Ähnliches: mono, gedämpft, mit Mittelpunkt getrennt. */
+/** Tech stacks and the like: mono, muted, separated by middots. */
 export function MetaList({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
@@ -95,9 +95,9 @@ export function ExternalLink({ url, label }: { url: string; label?: string }) {
 }
 
 /* ---------------------------------------------------------------------------
-   Symbole. Bewusst als Inline-SVG mit currentColor und aria-hidden: der Text
-   daneben bleibt unverändert, ein Parser liest also weiterhin die Adresse und
-   nicht ein Icon-Font-Zeichen.
+   Icons. Deliberately inline SVG with currentColor and aria-hidden: the text
+   next to them is untouched, so a parser still reads the address rather than an
+   icon-font glyph.
    --------------------------------------------------------------------------- */
 
 type IconName = "mail" | "phone" | "pin" | "link";
@@ -154,7 +154,7 @@ export function contactItems(cv: Cv): ContactItem[] {
   return items;
 }
 
-/** Kontaktangaben in einer Zeile (Kopfzeile) oder untereinander (Seitenspalte). */
+/** Contact details on one line (header) or stacked (sidebar). */
 export function ContactBlock({
   cv,
   design,
@@ -182,8 +182,8 @@ export function ContactBlock({
     );
   }
 
-  // Abstände über flex-gap statt über Leerzeichen im Text: HTML kollabiert
-  // mehrfache Leerzeichen, dadurch klebte der Trenner am nächsten Symbol.
+  // Spacing through flex gap rather than spaces in the text: HTML collapses
+  // repeated spaces, which made the separator stick to the next icon.
   return (
     <p className="doc-mono flex flex-wrap items-baseline gap-x-2 text-[0.78em]">
       {items.map((item, i) => (
@@ -209,7 +209,7 @@ export function Photo({
   size: number;
 }) {
   if (!design.showPhoto || !url) return null;
-  // Rund heißt quadratisch — ein Hochformat mit border-radius ergibt ein Ei.
+  // Round means square — a portrait format with border-radius gives an egg.
   const isRound = design.photoShape === "kreis";
   return (
     // eslint-disable-next-line @next/next/no-img-element

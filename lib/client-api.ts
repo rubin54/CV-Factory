@@ -1,11 +1,11 @@
-/** Fetch-Helfer für die Client-Komponenten. Serverfehler kommen als Error-Message an. */
+/** Fetch helpers for the client components. Server errors arrive as an Error message. */
 
 async function readError(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { error?: string };
     if (body?.error) return body.error;
   } catch {
-    /* kein JSON-Body */
+    /* no JSON body */
   }
   return `Anfrage fehlgeschlagen (HTTP ${res.status})`;
 }
@@ -30,7 +30,7 @@ export async function putJson<T>(url: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Stößt den PDF-Export an und lädt das Ergebnis im Browser herunter. */
+/** Triggers the PDF export and downloads the result in the browser. */
 export async function downloadPdf(body: unknown): Promise<string> {
   const res = await fetch("/api/pdf", {
     method: "POST",

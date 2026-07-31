@@ -4,8 +4,8 @@ import type { Design } from "@/lib/design";
 import { DocShell } from "./templates/shared";
 
 /**
- * Das Anschreiben übernimmt Schrift, Farbe, Dichte und Ränder aus denselben
- * Design-Einstellungen wie der Lebenslauf — beides landet im selben Umschlag.
+ * The cover letter takes typeface, colour, density and margins from the same
+ * design settings as the CV — both end up in the same envelope.
  */
 export function CoverLetterDocument({
   basics,

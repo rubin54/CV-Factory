@@ -4,12 +4,12 @@ import { SectionBlock } from "./sections";
 import { ContactBlock, DocShell, Photo, type TemplateProps } from "./shared";
 
 /**
- * Zweispaltiges Raster in der Tradition der dichten Ein-Seiten-Layouts: viel
- * Inhalt auf wenig Fläche, Seitenspalte rechts.
+ * Two-column grid in the tradition of dense one-page layouts: a lot of content
+ * in little space, sidebar on the right.
  *
- * Das ist das riskanteste der fünf Layouts — ein Parser, der spaltenweise
- * liest, mischt hier eher als bei den anderen. Die DOM-Reihenfolge stellt
- * trotzdem den Hauptteil nach vorn, damit der extrahierte Text stimmt.
+ * This is the riskiest of the five layouts — a parser that reads column by
+ * column is more likely to scramble this one. The DOM order still puts the main
+ * column first so that the extracted text comes out right.
  */
 export function DichtTemplate({ cv, design, photoUrl }: TemplateProps) {
   const { basics } = cv;

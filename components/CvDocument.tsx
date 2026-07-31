@@ -17,9 +17,9 @@ const TEMPLATE_COMPONENTS = {
 } satisfies Record<TemplateId, (props: TemplateProps) => React.ReactNode>;
 
 /**
- * Wählt das Template aus den Design-Einstellungen. Dieselbe Komponente rendert
- * die Live-Vorschau, die Vorschauseite und die Seite, die Puppeteer fotografiert
- * — was hier steht, steht im PDF.
+ * Picks the template from the design settings. The same component renders the
+ * live preview, the preview page and the page Puppeteer photographs — what
+ * stands here stands in the PDF.
  */
 export function CvDocument({
   cv,

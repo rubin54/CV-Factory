@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 const BodySchema = z.object({
   design: DesignSchema.nullable(),
-  /** Gesetzt: Design nur für diese Bewerbung. Fehlt: globaler Standard. */
+  /** Set: design for this application only. Absent: the global default. */
   slug: z.string().nullish(),
 });
 
@@ -41,8 +41,8 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
     }
 
-    // design === null hebt die Abweichung auf: die Bewerbung folgt wieder dem
-    // globalen Standard und ändert sich mit, wenn der sich ändert.
+    // design === null clears the override: the application follows the global
+    // default again and changes along with it.
     const updated = { ...application, design, updatedAt: new Date().toISOString() };
     await writeApplication(updated);
     return NextResponse.json({ application: updated });

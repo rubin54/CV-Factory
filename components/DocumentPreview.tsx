@@ -7,11 +7,11 @@ import { computePageBreaks } from "@/lib/paginate";
 const A4_WIDTH_PX = 794; // 210 mm bei 96 dpi
 
 /**
- * Skaliert das A4-Dokument auf die verfügbare Spaltenbreite und zeichnet ein,
- * wo die Seiten umbrechen.
+ * Scales the A4 document to the available column width and draws in where the
+ * pages break.
  *
- * Die Umbrüche stehen sonst erst im exportierten PDF fest — man ändert die
- * Dichte, exportiert, zählt Seiten, ändert wieder. Hier sieht man es sofort.
+ * Otherwise the breaks only become visible in the exported PDF — change the
+ * density, export, count pages, change again. Here you see it immediately.
  */
 export function DocumentPreview({
   children,
@@ -23,18 +23,18 @@ export function DocumentPreview({
 }: {
   children: ReactNode;
   scale?: number;
-  /** Satzspiegelhöhe einer Seite in CSS-Pixeln. Ohne diese keine Umbrüche. */
+  /** Text-body height of a page in CSS pixels. Without it, no breaks. */
   pageHeight?: number;
   onPagesChange?: (pages: number) => void;
   showBreaks?: boolean;
-  /** Zugriff auf den Dokumentknoten — der Auto-Fit misst daran. */
+  /** Access to the document node — the auto-fit measures against it. */
   measureRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const fallbackRef = useRef<HTMLDivElement>(null);
   const docRef = measureRef ?? fallbackRef;
   const [breaks, setBreaks] = useState<number[]>([]);
-  // Die Umbrüche werden relativ zum Textkörper gemessen; der sitzt um den
-  // Seitenrand tiefer als der Container, in dem gezeichnet wird.
+  // The breaks are measured relative to the text body, which sits one page
+  // margin lower than the container the lines are drawn into.
   const [bodyTop, setBodyTop] = useState(0);
 
   const measure = useCallback(() => {
@@ -66,8 +66,8 @@ export function DocumentPreview({
     const node = docRef.current;
     if (!node) return;
 
-    // Vor dem Laden der Schriften stimmen die Höhen nicht — dann liegt der
-    // Umbruch woanders als im PDF.
+    // Before the fonts have loaded the heights are wrong, and the break ends up
+    // somewhere other than in the PDF.
     let cancelled = false;
     void document.fonts.ready.then(() => {
       if (!cancelled) measure();
@@ -81,8 +81,8 @@ export function DocumentPreview({
     };
   }, [measure]);
 
-  // Nach jedem Render neu messen: Inhalt und Design ändern sich häufiger als
-  // die Elementgröße, die der ResizeObserver sieht.
+  // Re-measure after every render: content and design change more often than
+  // the element size the ResizeObserver sees.
   useEffect(measure);
 
   return (

@@ -8,14 +8,14 @@ import {
 } from "next/font/google";
 
 /**
- * next/font lädt die Dateien zur Buildzeit herunter und hostet sie selbst — zur
- * Laufzeit geht kein Request nach außen, auch nicht aus dem Puppeteer-Chromium.
+ * next/font downloads the files at build time and self-hosts them — at runtime
+ * nothing leaves the machine, not even from the Puppeteer Chromium.
  *
- * Bewusst keine Standardverdächtigen (Inter, Roboto, Arial): die sind der Grund,
- * warum generierte Lebensläufe alle gleich aussehen.
+ * Deliberately none of the usual suspects (Inter, Roboto, Arial): those are the
+ * reason generated CVs all look alike.
  *
- * Die Argumente müssen literal sein — next/font wertet sie zur Buildzeit
- * statisch aus, Variablen oder Spreads brechen den Build.
+ * The arguments have to be literals — next/font evaluates them statically at
+ * build time, so variables or spreads break the build.
  */
 
 export const plexSans = IBM_Plex_Sans({
@@ -56,7 +56,7 @@ export const literata = Literata({
   display: "swap",
 });
 
-/** Alle Schrift-Variablen fürs <html>-Element. */
+/** All font variables for the <html> element. */
 export const fontVariables = [
   plexSans.variable,
   plexMono.variable,

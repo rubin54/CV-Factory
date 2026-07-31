@@ -120,8 +120,8 @@ export function TextArea({
 }
 
 /**
- * string[] als Textarea mit einer Zeile pro Eintrag. Für Stichpunkte, Tech-Listen
- * und Details ist das schneller zu bedienen als einzelne Input-Felder pro Zeile.
+ * string[] as a textarea with one line per entry. For bullets, tech lists and
+ * details that is faster to work with than one input field per line.
  */
 export function StringList({
   label,
@@ -167,7 +167,7 @@ export function Card({
   actions?: ReactNode;
   children: ReactNode;
   id?: string;
-  /** Zusammenklappbar — gegen den Endlos-Scroll in Editor und Design-Panel. */
+  /** Collapsible — against the endless scroll in the editor and design panel. */
   collapsible?: boolean;
   defaultOpen?: boolean;
 }) {
@@ -213,7 +213,7 @@ export function Card({
   );
 }
 
-/** Wiederholbare Liste mit Hinzufügen, Entfernen und Verschieben. */
+/** Repeatable list with add, remove and reorder. */
 export function Repeatable<T>({
   label,
   items,
@@ -303,7 +303,7 @@ export function Repeatable<T>({
   );
 }
 
-/** Leerer Zustand mit Handlungsaufforderung statt bloßem „Noch keine". */
+/** Empty state with a call to action instead of a bare "none yet". */
 export function EmptyState({
   title,
   hint,

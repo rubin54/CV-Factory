@@ -4,12 +4,11 @@ import { SectionBlock } from "./sections";
 import { ContactBlock, DocShell, Photo, type TemplateProps } from "./shared";
 
 /**
- * Zentrierte Kopfzeile, Kontaktzeile mit Trennstrichen, Abschnittstitel in
- * Kapitälchen über einer durchgehenden Linie — die Form, die in der
- * Tech-Branche am wenigsten Fragen aufwirft.
+ * Centred header, contact line with separators, section titles in caps above a
+ * full-width rule — the shape that raises the fewest questions in tech.
  *
- * Einspaltig: die Seitenspalten-Zuordnung der Abschnitte wird hier ignoriert,
- * alles landet in einem Fluss.
+ * Single column: the sidebar assignment of the sections is ignored here,
+ * everything ends up in one flow.
  */
 export function KlassikTemplate({ cv, design, photoUrl }: TemplateProps) {
   const { basics } = cv;

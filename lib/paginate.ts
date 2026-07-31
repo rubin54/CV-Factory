@@ -1,22 +1,22 @@
 /**
- * Rechnet nach, wo Chromium das Dokument beim Druck umbricht.
+ * Works out where Chromium breaks the document into pages when printing.
  *
- * Warum nicht einfach Höhe durch Seitenhöhe teilen: Elemente mit
- * `break-inside: avoid` werden nicht zerschnitten, sondern komplett auf die
- * nächste Seite geschoben. Dadurch entsteht am Seitenende Leerraum, und die
- * naive Rechnung zählt zu wenig Seiten.
+ * Why not simply divide height by page height: elements with
+ * `break-inside: avoid` are not cut, they are pushed onto the next page whole.
+ * That leaves whitespace at the bottom of a page, and the naive calculation
+ * ends up counting too few pages.
  *
- * Das Modell hier ist bewusst das gleiche wie Chromiums: unteilbare Blöcke
- * sammeln, der Reihe nach einsortieren, und sobald einer über die Seitenkante
- * ragen würde, die Seite vor ihm beenden.
+ * The model here is deliberately the same one Chromium uses: collect the
+ * unbreakable blocks, place them in order, and end the page in front of any
+ * block that would otherwise cross the page edge.
  */
 
 type Atom = { top: number; bottom: number };
 
 /**
- * Unteilbare Blöcke einsammeln: alles mit `break-inside: avoid` sowie Elemente
- * ohne Kindelemente. Bei allem anderen wird weiter nach unten gelaufen, damit
- * ein Umbruch zwischen den Kindern möglich bleibt.
+ * Collects the unbreakable blocks: everything with `break-inside: avoid` plus
+ * elements without children. Anything else is descended into, so that a break
+ * between its children stays possible.
  */
 function collectAtoms(root: HTMLElement, scale: number): Atom[] {
   const rootTop = root.getBoundingClientRect().top;
@@ -47,8 +47,8 @@ function collectAtoms(root: HTMLElement, scale: number): Atom[] {
 }
 
 /**
- * Positionen der Seitenumbrüche, gemessen vom oberen Rand des Dokuments in
- * ungeskalierten CSS-Pixeln. Seitenzahl = Umbrüche + 1.
+ * Positions of the page breaks, measured from the top of the document in
+ * unscaled CSS pixels. Page count = breaks + 1.
  */
 export function computePageBreaks(
   container: HTMLElement,
@@ -57,10 +57,9 @@ export function computePageBreaks(
 ): number[] {
   if (pageHeight <= 0) return [];
 
-  // Gemessen wird der Textkörper, nicht die Seite: `.doc-shell` trägt auf dem
-  // Bildschirm den Seitenrand als Innenabstand, im PDF kommt der dagegen von
-  // Puppeteer. Würde man die Hülle messen, zählte der Rand doppelt und die
-  // Schätzung läge eine Seite zu hoch.
+  // Measure the text body, not the page: on screen `.doc-shell` carries the
+  // page margin as padding, whereas in the PDF that margin comes from Puppeteer.
+  // Measuring the shell would count the margin twice and overestimate by a page.
   const root = container.querySelector<HTMLElement>(".doc") ?? container;
 
   const atoms = collectAtoms(root, scale);
@@ -68,7 +67,7 @@ export function computePageBreaks(
   const breaks: number[] = [];
   let pageTop = 0;
 
-  /** Seiten füllen, bis y auf der aktuellen Seite liegt. */
+  /** Fill pages until y falls on the current one. */
   const fillUntil = (y: number) => {
     let guard = 0;
     while (y >= pageTop + pageHeight && guard++ < 200) {
@@ -80,14 +79,14 @@ export function computePageBreaks(
   for (const atom of atoms) {
     if (atom.bottom <= pageTop + pageHeight) continue;
 
-    // Beginnt der Block erst hinter der Seitenkante, liegen dazwischen nur
-    // Umbrüche ohne Konflikt.
+    // If the block only starts past the page edge, everything in between is an
+    // uncontested break.
     if (atom.top >= pageTop + pageHeight) {
       fillUntil(atom.top);
       if (atom.bottom <= pageTop + pageHeight) continue;
     }
 
-    // Höher als eine Seite: den zerschneidet auch Chromium.
+    // Taller than a page: Chromium cuts this one too.
     if (atom.bottom - atom.top > pageHeight) {
       fillUntil(atom.bottom);
       continue;
@@ -101,8 +100,8 @@ export function computePageBreaks(
     }
   }
 
-  // Der halbe Pixel verhindert eine Leerseite, wenn der Inhalt exakt auf der
-  // Kante endet.
+  // The half pixel prevents a blank page when the content ends exactly on the
+  // page edge.
   fillUntil(totalHeight - 0.5);
   return breaks;
 }

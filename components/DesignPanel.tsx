@@ -43,7 +43,7 @@ export function DesignPanel({
   onChange: (design: Design) => void;
   photoUrl: string | null;
   onPhotoChange: (photoUrl: string | null) => void;
-  /** Wenn gesetzt, werden die Vorlagen als gerenderte Miniaturen gezeigt. */
+  /** When set, the templates are shown as rendered thumbnails. */
   previewCv?: Cv;
 }) {
   const [tab, setTab] = useState<TabId>("vorlage");
@@ -275,8 +275,8 @@ export function DesignPanel({
 }
 
 /**
- * Gerenderte Miniatur einer Vorlage. Zeigt den echten Lebenslauf im echten
- * Layout — fünf Textabsätze sagen einem nicht, wie eine Vorlage aussieht.
+ * Rendered thumbnail of a template. Shows the real CV in the real layout — five
+ * paragraphs of prose do not tell you what a template looks like.
  */
 function TemplateThumb({
   id,
@@ -293,9 +293,9 @@ function TemplateThumb({
   active: boolean;
   onSelect: () => void;
 }) {
-  // Volle A4-Höhe, damit die Miniatur eine ganze Seite zeigt statt mittendrin
-  // abzuschneiden — sonst sieht man vom Aufbau gerade das nicht, was ihn
-  // unterscheidet.
+  // Full A4 height so the thumbnail shows a whole page instead of cutting off
+  // halfway — otherwise you miss exactly the part of the layout that sets it
+  // apart.
   const SCALE = 0.23;
   return (
     <button

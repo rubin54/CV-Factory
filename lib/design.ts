@@ -2,20 +2,20 @@ import type { CSSProperties } from "react";
 import * as z from "zod";
 
 /**
- * Design-Einstellungen. Diese gehen NICHT an die API — hier sind Constraints und
- * Enums erlaubt.
+ * Design settings. These do NOT go to the API — constraints and enums are fine
+ * here.
  *
- * Farben und Schriften sind kuratierte Sets statt freier Wähler: ein Lebenslauf
- * mit selbst gewählter Farbe und Schrift sieht meist schlechter aus als einer
- * aus abgestimmten Vorgaben. Größen und Abstände sind dagegen stufenlos — der
- * Auto-Fit sucht darüber die Kombination, mit der der Inhalt auf N Seiten passt.
+ * Colours and fonts are curated sets rather than free pickers: a CV with a
+ * self-chosen colour and typeface usually looks worse than one built from
+ * matched presets. Sizes and spacing, in contrast, are continuous — the auto-fit
+ * searches that range for the combination that fits the content onto N pages.
  */
 
 export const TEMPLATE_IDS = ["klassik", "linear", "kompakt", "akzent", "dicht"] as const;
 export const PALETTE_IDS = ["graphit", "tinte", "moos", "rost", "aubergine"] as const;
 export const FONT_PAIR_IDS = ["plex", "source", "grotesk", "literata"] as const;
 
-/** Abschnitte, die sich sortieren, ausblenden und verschieben lassen. */
+/** Sections that can be reordered, hidden and moved between columns. */
 export const SECTION_IDS = [
   "summary",
   "experience",
@@ -44,15 +44,15 @@ export const SECTION_LABELS: Record<SectionId, string> = {
 export const SectionPlacementSchema = z.object({
   id: z.enum(SECTION_IDS),
   visible: z.boolean(),
-  /** Nur bei Vorlagen mit Seitenspalte wirksam. */
+  /** Only takes effect in templates that have a sidebar. */
   column: z.enum(["main", "aside"]),
 });
 
 export type SectionPlacement = z.infer<typeof SectionPlacementSchema>;
 
 /**
- * Reihenfolge nach dem, was für Software-Lebensläufe empfohlen wird:
- * Profil, Erfahrung, Projekte, Ausbildung — Nachschlagbares in die Seitenspalte.
+ * Order follows the common recommendation for software CVs: summary,
+ * experience, projects, education — reference material into the sidebar.
  */
 export const DEFAULT_SECTIONS: SectionPlacement[] = [
   { id: "summary", visible: true, column: "main" },
@@ -70,21 +70,21 @@ export const DesignSchema = z.object({
   palette: z.enum(PALETTE_IDS),
   fontPair: z.enum(FONT_PAIR_IDS),
 
-  /** Grundschriftgröße in pt. Der Auto-Fit variiert diesen Wert zuerst. */
+  /** Base font size in pt. The auto-fit varies this one first. */
   fontSize: z.number().min(7.5).max(13),
-  /** Zeilenabstand, einheitenlos. Zweiter Stellhebel des Auto-Fits. */
+  /** Line height, unitless. The auto-fit's second lever. */
   lineHeight: z.number().min(1.15).max(1.8),
-  /** Multiplikator für Abstände zwischen Abschnitten und Einträgen. */
+  /** Multiplier for the gaps between sections and entries. */
   spacing: z.number().min(0.5).max(1.8),
-  /** Seitenrand in Millimetern — wirkt im PDF über Puppeteer. */
+  /** Page margin in millimetres — applied in the PDF through Puppeteer. */
   margin: z.number().min(8).max(28),
 
   sections: z.array(SectionPlacementSchema).default(DEFAULT_SECTIONS),
   showPhoto: z.boolean(),
   photoShape: z.enum(["kreis", "eckig"]),
-  /** Symbole in der Kontaktzeile. Der Text daneben bleibt unverändert lesbar. */
+  /** Icons in the contact line. The text next to them stays readable as-is. */
   showIcons: z.boolean().default(true),
-  /** Fußzeile mit Stand-Datum. */
+  /** Footer carrying an as-of date. */
   showFooter: z.boolean().default(false),
 });
 
@@ -105,7 +105,7 @@ export const DEFAULT_DESIGN: Design = {
   showFooter: false,
 };
 
-/** Voreinstellungen für die Schnellwahl — der Auto-Fit rechnet dazwischen. */
+/** Presets for the quick picker — the auto-fit interpolates in between. */
 export const DENSITY_PRESETS = [
   { label: "Luftig", fontSize: 11, lineHeight: 1.55, spacing: 1.3 },
   { label: "Normal", fontSize: 10.25, lineHeight: 1.45, spacing: 1 },
@@ -236,9 +236,8 @@ export const FONT_PAIRS: Record<
 };
 
 /**
- * Ergänzt fehlende Abschnitte und wirft Unbekanntes weg. Ohne das würde eine
- * von Hand editierte design.json Abschnitte verschwinden lassen, ohne dass es
- * jemandem auffällt.
+ * Adds missing sections and drops unknown ones. Without this a hand-edited
+ * design.json would make sections disappear without anyone noticing.
  */
 export function normalizeSections(sections: SectionPlacement[]): SectionPlacement[] {
   const seen = new Set<SectionId>();
@@ -255,7 +254,7 @@ export function normalizeSections(sections: SectionPlacement[]): SectionPlacemen
   return result;
 }
 
-/** Abschnitte nach Spalte, in der eingestellten Reihenfolge. */
+/** Sections grouped by column, in the configured order. */
 export function sectionPlan(design: Design): { main: SectionId[]; aside: SectionId[] } {
   const sections = normalizeSections(design.sections).filter((s) => s.visible);
   const hasAside = TEMPLATES[design.template].hasAside;
@@ -266,7 +265,7 @@ export function sectionPlan(design: Design): { main: SectionId[]; aside: Section
   };
 }
 
-/** Design-Einstellungen als CSS-Custom-Properties für den Dokument-Container. */
+/** Design settings as CSS custom properties for the document container. */
 export function designToCssVars(design: Design): CSSProperties {
   const palette = PALETTES[design.palette];
   const fonts = FONT_PAIRS[design.fontPair];
@@ -289,7 +288,7 @@ export function designToCssVars(design: Design): CSSProperties {
   } as CSSProperties;
 }
 
-/** Satzspiegel einer A4-Seite in CSS-Pixeln, bei gegebenem Rand. */
+/** Text-body height of an A4 page in CSS pixels, for the given margin. */
 export function pageContentHeightPx(design: Design): number {
   const MM_TO_PX = 96 / 25.4;
   return (297 - 2 * design.margin) * MM_TO_PX;

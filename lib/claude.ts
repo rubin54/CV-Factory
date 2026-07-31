@@ -16,7 +16,7 @@ import { SYSTEM_COVER_LETTER, SYSTEM_EXTRACT, SYSTEM_TAILOR } from "./prompts";
 
 const MODEL = "claude-opus-5";
 
-/** Fehler mit einer Meldung, die man dem Nutzer direkt zeigen kann. */
+/** Error carrying a message that can be shown to the user as-is. */
 export class ClaudeError extends Error {
   constructor(
     message: string,
@@ -42,9 +42,9 @@ function getClient(): Anthropic {
 
 type StructuredCallOptions<T> = {
   system: string;
-  /** Stabiler Teil des Prompts — landet vor dem Cache-Breakpoint. */
+  /** Stable part of the prompt — sits before the cache breakpoint. */
   context: string;
-  /** Variabler Teil — landet nach dem Cache-Breakpoint. */
+  /** Variable part — sits after the cache breakpoint. */
   task: string;
   schema: z.ZodType<T>;
   effort: "low" | "medium" | "high" | "xhigh" | "max";
@@ -52,11 +52,11 @@ type StructuredCallOptions<T> = {
 };
 
 /**
- * Ein Aufruf mit garantiert schema-konformem Output.
+ * One call with output guaranteed to match the schema.
  *
- * Der Cache-Breakpoint sitzt auf dem letzten System-Block: System-Prompt und
- * `context` (z.B. der Master-CV) sind über mehrere Aufrufe hinweg identisch, der
- * variable `task` steht danach in der User-Message.
+ * The cache breakpoint sits on the last system block: the system prompt and
+ * `context` (the master CV, for instance) stay identical across calls, while the
+ * variable `task` follows in the user message.
  */
 async function runStructured<T>({
   system,
@@ -125,7 +125,7 @@ function toClaudeError(err: unknown): ClaudeError {
   );
 }
 
-/** Rohnotizen → strukturierter Lebenslauf. */
+/** Raw notes -> structured CV. */
 export function extractCv(rawText: string, existing: Cv): Promise<Cv> {
   return runStructured({
     system: SYSTEM_EXTRACT,
@@ -145,7 +145,7 @@ export function extractCv(rawText: string, existing: Cv): Promise<Cv> {
   });
 }
 
-/** Master-CV + Stellenanzeige → zugeschnittene Variante mit Begründung. */
+/** Master CV + job posting -> tailored variant with a rationale. */
 export function tailorCv(
   masterCv: Cv,
   jobPosting: string,
@@ -167,7 +167,7 @@ export function tailorCv(
   });
 }
 
-/** Zugeschnittener CV + Anzeige → Anschreiben. */
+/** Tailored CV + posting -> cover letter. */
 export function writeCoverLetter(
   cv: Cv,
   jobPosting: string,

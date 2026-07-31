@@ -11,7 +11,7 @@ import { downloadPdf, postJson, putJson } from "@/lib/client-api";
 import type { Cv } from "@/lib/cv-schema";
 import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
 
-/** Sprungziele der Editorkarten — Reihenfolge wie im Formular. */
+/** Jump targets for the editor cards — same order as the form. */
 const ANCHORS = [
   ["notizen", "Notizen"],
   ["basis", "Basis"],

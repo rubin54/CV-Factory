@@ -15,7 +15,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   webp: "image/webp",
 };
 
-/** Liefert das Foto aus data/ — dort liegt es außerhalb von public/. */
+/** Serves the photo from data/ — it lives outside public/ on purpose. */
 export async function GET() {
   const photo = await findPhoto();
   if (!photo) return new NextResponse(null, { status: 404 });
@@ -26,8 +26,8 @@ export async function GET() {
   return new NextResponse(new Uint8Array(data), {
     headers: {
       "Content-Type": MIME_BY_EXTENSION[extension] ?? "application/octet-stream",
-      // Der Cache-Buster in der URL macht die Antwort eindeutig, deshalb darf
-      // sie lange gecacht werden.
+      // The cache buster in the URL makes the response unique, so it may be
+      // cached for a long time.
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });

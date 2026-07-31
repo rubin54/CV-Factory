@@ -4,9 +4,9 @@ import { SectionBlock } from "./sections";
 import { ContactBlock, DocShell, Photo, type TemplateProps } from "./shared";
 
 /**
- * Streng einspaltig. Die Ruhe kommt aus einer festen Datumsspalte links: jeder
- * Abschnitt beginnt an derselben Kante, die Zeiträume bilden eine durchgehende
- * Achse. Kein Kasten, keine Fläche, nichts, woran ein Parser scheitern kann.
+ * Strictly single column. The calm comes from a fixed date column on the left:
+ * every section starts at the same edge and the date ranges form a continuous
+ * axis. No boxes, no fills, nothing a parser can trip over.
  */
 export function LinearTemplate({ cv, design, photoUrl }: TemplateProps) {
   const { basics } = cv;

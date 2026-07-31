@@ -1,6 +1,6 @@
 "use client";
 
-/** Schmale Reiterleiste — bricht bei wenig Platz um statt zu scrollen. */
+/** Slim tab bar — wraps when space is tight instead of scrolling. */
 export function Tabs<T extends string>({
   tabs,
   value,

@@ -16,14 +16,14 @@ const DESIGN_PATH = path.join(DATA_DIR, "design.json");
 const APPLICATIONS_DIR = path.join(DATA_DIR, "applications");
 export const EXPORT_DIR = path.join(process.cwd(), "export");
 
-/** Erlaubte Foto-Formate und der Dateiname, unter dem sie abgelegt werden. */
+/** Accepted photo formats and the extension they are stored under. */
 export const PHOTO_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
 
-/** Fehler beim Lesen einer Datei, die nicht zum Schema passt. */
+/** Raised when a file on disk does not match its schema. */
 export class StoreValidationError extends Error {
   constructor(file: string, issues: z.ZodError) {
     const details = issues.issues
@@ -54,7 +54,7 @@ async function writeJson(file: string, data: unknown): Promise<void> {
   await fs.writeFile(file, JSON.stringify(data, null, 2) + "\n", "utf8");
 }
 
-/** Master-CV. Gibt einen leeren CV zurück, wenn noch keiner existiert. */
+/** Master CV. Returns an empty CV when none exists yet. */
 export async function readCv(): Promise<Cv> {
   return (await readJson(CV_PATH, CvSchema)) ?? emptyCv();
 }
@@ -63,7 +63,7 @@ export async function writeCv(cv: Cv): Promise<void> {
   await writeJson(CV_PATH, CvSchema.parse(cv));
 }
 
-/** Globale Design-Einstellungen; Vorgabe, solange nichts gespeichert wurde. */
+/** Global design settings; the defaults until something has been saved. */
 export async function readDesign(): Promise<Design> {
   return (await readJson(DESIGN_PATH, DesignSchema)) ?? DEFAULT_DESIGN;
 }
@@ -73,14 +73,14 @@ export async function writeDesign(design: Design): Promise<void> {
 }
 
 /**
- * Das Design einer Bewerbung: eigene Einstellung, sonst die globale. So ändert
- * ein Wechsel der Standardvorlage alle Bewerbungen mit, die keine eigene haben.
+ * An application's design: its own setting, otherwise the global one. That way
+ * changing the default template also changes every application without one.
  */
 export async function resolveDesign(application?: Application | null): Promise<Design> {
   return application?.design ?? (await readDesign());
 }
 
-/** Pfad des hinterlegten Bewerbungsfotos, oder null. */
+/** Path of the stored photo, or null. */
 export async function findPhoto(): Promise<{ path: string; mtimeMs: number } | null> {
   for (const ext of new Set(Object.values(PHOTO_TYPES))) {
     const candidate = path.join(DATA_DIR, `photo.${ext}`);
@@ -88,15 +88,15 @@ export async function findPhoto(): Promise<{ path: string; mtimeMs: number } | n
       const stat = await fs.stat(candidate);
       return { path: candidate, mtimeMs: stat.mtimeMs };
     } catch {
-      /* nächste Endung probieren */
+      /* try the next extension */
     }
   }
   return null;
 }
 
 /**
- * URL fürs Foto inklusive Cache-Buster. Ohne den zeigt die Vorschau nach einem
- * Upload weiter das alte Bild — auch im Puppeteer-Chromium.
+ * Photo URL including a cache buster. Without it the preview keeps showing the
+ * old image after an upload — in the Puppeteer Chromium too.
  */
 export async function photoUrl(): Promise<string | null> {
   const photo = await findPhoto();
@@ -116,8 +116,8 @@ export async function removePhoto(): Promise<void> {
 }
 
 /**
- * Ein Slug, der nicht unserem Format entspricht, kann keine Datei von uns
- * bezeichnen — das ist ein "nicht gefunden", kein Fehler.
+ * A slug that does not match our format cannot name a file we wrote — that is a
+ * "not found", not an error.
  */
 export async function readApplication(slug: string): Promise<Application | null> {
   if (!isSafeSlug(slug)) return null;
@@ -128,7 +128,7 @@ export async function writeApplication(app: Application): Promise<void> {
   await writeJson(applicationPath(app.slug), ApplicationSchema.parse(app));
 }
 
-/** Alle Bewerbungen, neueste zuerst. Kaputte Dateien werden übersprungen. */
+/** All applications, newest first. Broken files are skipped. */
 export async function listApplications(): Promise<Application[]> {
   let entries: string[];
   try {
@@ -156,8 +156,8 @@ function applicationPath(slug: string): string {
 }
 
 /**
- * Slugs landen in Dateipfaden — nach der Normalisierung muss übrig bleiben, was
- * `slugify` erzeugen würde, sonst kommt der Wert nicht von uns.
+ * Slugs end up in file paths — what remains after normalisation has to be what
+ * `slugify` would produce, otherwise the value did not come from us.
  */
 export function isSafeSlug(slug: string): boolean {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);

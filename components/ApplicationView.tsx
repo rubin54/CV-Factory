@@ -95,8 +95,8 @@ export function ApplicationView({
       );
     });
 
-  // Was gerade gerendert wird: der Entwurf im Panel, sonst das gespeicherte
-  // Design der Bewerbung, sonst der globale Standard.
+  // What is being rendered right now: the draft in the panel, otherwise the
+  // application's saved design, otherwise the global default.
   const activeDesign = draftDesign ?? application.design ?? globalDesign;
   const designDirty = JSON.stringify(draftDesign) !== JSON.stringify(application.design);
 

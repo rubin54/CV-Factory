@@ -13,7 +13,7 @@ const BodySchema = z.object({
   company: z.string().min(1, "Firma fehlt"),
   role: z.string().min(1, "Rolle fehlt"),
   jobPosting: z.string().min(1, "Stellenanzeige fehlt"),
-  /** Gesetzt beim erneuten Zuschneiden einer bestehenden Bewerbung. */
+  /** Set when re-tailoring an existing application. */
   slug: z.string().nullish(),
 });
 
@@ -46,10 +46,10 @@ export async function POST(req: Request) {
       rationale: result.rationale,
       matchedKeywords: result.matchedKeywords,
       gaps: result.gaps,
-      // Ein neu zugeschnittener CV entwertet ein zuvor erzeugtes Anschreiben.
+      // A freshly tailored CV invalidates any cover letter written before it.
       coverLetter: null,
-      // Das Design gehört zur Bewerbung, nicht zum Inhalt — es überlebt einen
-      // neuen Zuschnitt.
+      // The design belongs to the application, not to its content — it survives
+      // a re-tailoring.
       design: existing?.design ?? null,
     };
 

@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #16181d;
+  --muted: #5b6270;
+  --rule: #d7dbe2;
+  --accent: #1f4d7a;
+}
+
+body {
+  background: #eef0f4;
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Dokument-Layout (CV und Anschreiben).
+   Auf dem Bildschirm: eine A4-große weiße Karte inkl. Rändern.
+   Im Druck: Ränder liefert Puppeteer, damit sie auf JEDER Seite greifen —
+   deshalb hier padding auf 0.
+   --------------------------------------------------------------------------- */
+.doc-shell {
+  width: 210mm;
+  padding: 16mm;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+.doc {
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+.doc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.doc h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.doc h2 {
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 3px;
+  margin-bottom: 10px;
+}
+
+.doc-section {
+  margin-top: 18px;
+}
+
+/* Ein Eintrag soll nicht über einen Seitenumbruch zerrissen werden. */
+.doc-entry {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.doc-entry + .doc-entry {
+  margin-top: 12px;
+}
+
+.doc-muted {
+  color: var(--muted);
+}
+
+.doc ul {
+  list-style: disc;
+  padding-left: 1.1em;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  .doc-shell {
+    width: auto;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+  @page {
+    size: A4;
+  }
+}

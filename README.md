@@ -132,6 +132,7 @@ kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten 
 | `lib/fonts.ts` | Schriften über `next/font` — zur Buildzeit geladen, selbst gehostet |
 | `components/templates/sections.tsx` | Die Abschnitte als Bausteine; Reihenfolge kommt aus dem Design |
 | `components/templates/` | Die fünf Vorlagen plus ihre gemeinsamen Bausteine |
+| `components/app/` | Hülle der Oberfläche: Seitenleiste, Reiter, Einblendungen, Farbschema |
 | `app/api/pdf/route.ts` | Puppeteer rendert die Vorschauseite nach A4 |
 
 Modell: `claude-opus-5`, adaptives Denken. Effort `high` fürs Zuschneiden und
@@ -171,6 +172,20 @@ Beim Layout vier Dinge beachten — alle am exportierten PDF gemessen, nicht ver
 Die Spaltenlayouts stellen im DOM immer den Hauptteil vor die Seitenspalte und
 positionieren die Spalte per Grid — so liest ein Parser die Berufserfahrung vor der
 Kenntnisliste, obwohl sie rechts steht.
+
+## Oberfläche
+
+Seitenleiste mit den drei Bereichen, darüber eine klebende Kopfzeile. Hell und dunkel
+umschaltbar (unten links); die Wahl liegt im `localStorage`, ein Inline-Skript setzt sie
+vor dem ersten Paint, damit nichts aufblitzt.
+
+**Das Dokument bleibt in beiden Modi weiß.** Die Tokens sind getrennt: `--app-*` für die
+Hülle, die Dokument-Variablen kommen weiterhin aus `designToCssVars()`. Ein Lebenslauf
+wird gedruckt — ein dunkles Blatt wäre falsch.
+
+Gegen den langen Scroll: im Editor eine Sprungleiste über die Abschnitte und
+zusammenklappbare Karten, im Design-Panel Reiter statt eines Stapels. Rückmeldungen
+erscheinen als kurze Einblendung unten rechts, statt als Banner den Inhalt zu verschieben.
 
 ## Befehle
 

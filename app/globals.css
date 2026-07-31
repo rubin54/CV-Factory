@@ -1,9 +1,91 @@
 @import "tailwindcss";
 
+/* ===========================================================================
+   Tokens der Oberfläche
+
+   Streng getrennt von den Dokument-Tokens weiter unten: der Lebenslauf wird
+   gedruckt und bleibt deshalb in jedem Modus weiß mit dunkler Schrift. Was
+   hier steht, betrifft nur die Hülle drumherum.
+   =========================================================================== */
+
+:root {
+  --app-bg: #f4f6f8;
+  --app-surface: #ffffff;
+  --app-sunken: #eceff3;
+  --app-border: #e2e6ec;
+  --app-border-strong: #c9d0da;
+  --app-text: #0f1319;
+  --app-muted: #5d6775;
+  --app-faint: #8a93a1;
+  --app-accent: #1f3f68;
+  --app-accent-text: #ffffff;
+  --app-accent-soft: #e9eff7;
+  --app-danger: #b42318;
+  --app-danger-soft: #fdf0ef;
+  --app-ok: #0a7048;
+  --app-ok-soft: #eaf6f0;
+  --app-warn: #8a5a06;
+  --app-warn-soft: #fdf5e6;
+  --app-ring: #93a7c4;
+  --app-shadow: 0 1px 2px rgb(15 19 25 / 0.05), 0 1px 3px rgb(15 19 25 / 0.06);
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #0d1015;
+  --app-surface: #161a21;
+  --app-sunken: #1c212a;
+  --app-border: #262c37;
+  --app-border-strong: #3a4351;
+  --app-text: #e7eaef;
+  --app-muted: #9aa4b2;
+  --app-faint: #6f7988;
+  --app-accent: #86aede;
+  --app-accent-text: #0d1015;
+  --app-accent-soft: #1b2634;
+  --app-danger: #f0847a;
+  --app-danger-soft: #2a1917;
+  --app-ok: #63c69b;
+  --app-ok-soft: #12261e;
+  --app-warn: #d9ac5c;
+  --app-warn-soft: #261e10;
+  --app-ring: #5b7ba8;
+  --app-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+/* Als Tailwind-Farben verfügbar machen: bg-surface, text-muted, border-line … */
+@theme inline {
+  --color-app: var(--app-bg);
+  --color-surface: var(--app-surface);
+  --color-sunken: var(--app-sunken);
+  --color-line: var(--app-border);
+  --color-line-strong: var(--app-border-strong);
+  --color-ink: var(--app-text);
+  --color-muted: var(--app-muted);
+  --color-faint: var(--app-faint);
+  --color-accent: var(--app-accent);
+  --color-accent-text: var(--app-accent-text);
+  --color-accent-soft: var(--app-accent-soft);
+  --color-danger: var(--app-danger);
+  --color-danger-soft: var(--app-danger-soft);
+  --color-ok: var(--app-ok);
+  --color-ok-soft: var(--app-ok-soft);
+  --color-warn: var(--app-warn);
+  --color-warn-soft: var(--app-warn-soft);
+}
+
 body {
-  background: #eef0f4;
-  color: #16181d;
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Einheitlicher Fokusring statt Browser-Default, damit Tastaturbedienung
+   sichtbar bleibt ohne bei Mausklicks zu blitzen. */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--app-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ===========================================================================

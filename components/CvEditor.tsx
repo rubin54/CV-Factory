@@ -1,23 +1,28 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
-import Link from "next/link";
-
+import { useToast } from "@/components/app/Toast";
 import { CvDocument } from "@/components/CvDocument";
 import { DocumentPreview } from "@/components/DocumentPreview";
-import {
-  Button,
-  Card,
-  ErrorBanner,
-  Field,
-  Repeatable,
-  StringList,
-  TextArea,
-} from "@/components/ui";
-import { postJson, putJson, downloadPdf } from "@/lib/client-api";
+import { Button, Card, Field, Repeatable, StringList, TextArea } from "@/components/ui";
+import { downloadPdf, postJson, putJson } from "@/lib/client-api";
 import type { Cv } from "@/lib/cv-schema";
 import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
+
+/** Sprungziele der Editorkarten — Reihenfolge wie im Formular. */
+const ANCHORS = [
+  ["notizen", "Notizen"],
+  ["basis", "Basis"],
+  ["links", "Links"],
+  ["erfahrung", "Erfahrung"],
+  ["projekte", "Projekte"],
+  ["kenntnisse", "Kenntnisse"],
+  ["ausbildung", "Ausbildung"],
+  ["zertifikate", "Zertifikate"],
+  ["sprachen", "Sprachen"],
+] as const;
 
 export function CvEditor({
   initialCv,
@@ -28,12 +33,12 @@ export function CvEditor({
   design: Design;
   photoUrl: string | null;
 }) {
+  const toast = useToast();
   const [cv, setCv] = useState<Cv>(initialCv);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<null | "save" | "extract" | "pdf">(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [pages, setPages] = useState(1);
 
   const update = (patch: Partial<Cv>) => {
     setCv((current) => ({ ...current, ...patch }));
@@ -42,12 +47,10 @@ export function CvEditor({
 
   const run = async (kind: "save" | "extract" | "pdf", fn: () => Promise<void>) => {
     setBusy(kind);
-    setError(null);
-    setNotice(null);
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(null);
     }
@@ -57,61 +60,64 @@ export function CvEditor({
     run("save", async () => {
       await putJson("/api/cv", { cv });
       setDirty(false);
-      setNotice("In data/cv.json gespeichert.");
+      toast.ok("In data/cv.json gespeichert.");
     });
 
   const extract = () =>
     run("extract", async () => {
-      const { cv: merged } = await postJson<{ cv: Cv }>("/api/extract", {
-        rawText: notes,
-      });
+      const { cv: merged } = await postJson<{ cv: Cv }>("/api/extract", { rawText: notes });
       setCv(merged);
       setDirty(true);
       setNotes("");
-      setNotice(
-        "Notizen eingearbeitet. Bitte durchsehen — gespeichert wird erst mit „Speichern“.",
-      );
+      toast.ok("Notizen eingearbeitet — bitte durchsehen und dann speichern.");
     });
 
   const exportPdf = () =>
     run("pdf", async () => {
       if (dirty) throw new Error("Bitte zuerst speichern — das PDF liest die Datei.");
       const savedTo = await downloadPdf({ target: "master" });
-      setNotice(`PDF exportiert nach ${savedTo}`);
+      toast.ok(`PDF exportiert nach ${savedTo}`);
     });
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
-      <div className="space-y-4">
-        <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 border-b border-slate-200 bg-[#eef0f4]/90 px-1 py-3 backdrop-blur">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_540px]">
+      <div className="min-w-0 space-y-3">
+        <div className="sticky top-[57px] z-10 -mx-1 flex flex-wrap items-center gap-x-3 gap-y-2 bg-app/90 px-1 py-2 backdrop-blur">
           <Button variant="primary" onClick={save} pending={busy === "save"} disabled={!dirty}>
             {dirty ? "Speichern" : "Gespeichert"}
           </Button>
           <Button onClick={exportPdf} pending={busy === "pdf"}>
-            Als PDF exportieren
+            PDF
           </Button>
-          <a
+          <Link
             href="/preview/cv"
             target="_blank"
-            rel="noreferrer"
-            className="text-sm text-slate-500 underline-offset-2 hover:underline"
+            className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
           >
-            Vorschau in neuem Tab
-          </a>
+            Vorschau ↗
+          </Link>
+
+          <nav className="flex flex-1 flex-wrap justify-end gap-0.5">
+            {ANCHORS.map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className="rounded px-1.5 py-0.5 text-[11px] text-faint transition hover:bg-sunken hover:text-ink"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
         </div>
 
-        <ErrorBanner message={error} />
-        {notice && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {notice}
-          </p>
-        )}
-
         <Card
+          id="notizen"
           title="Notizen einwerfen"
+          collapsible
           actions={
             <Button
               variant="primary"
+              size="sm"
               onClick={extract}
               pending={busy === "extract"}
               disabled={notes.trim().length === 0}
@@ -120,21 +126,21 @@ export function CvEditor({
             </Button>
           }
         >
-          <p className="mb-2 text-xs text-slate-500">
-            Unsortierter Text — Stationen, Aufgaben, Zahlen. Claude ordnet das in die
-            Felder unten ein und ergänzt den bestehenden Stand, statt ihn zu ersetzen.
-            Nichts wird dabei erfunden.
+          <p className="mb-2 text-xs text-muted">
+            Unsortierter Text — Stationen, Aufgaben, Zahlen. Claude ordnet das in die Felder
+            unten ein und ergänzt den bestehenden Stand, statt ihn zu ersetzen. Nichts wird
+            dabei erfunden.
           </p>
           <TextArea
             label="Notizen"
-            rows={6}
+            rows={5}
             value={notes}
             onChange={setNotes}
-            placeholder={"2021–2024 Backend bei Acme, Node/Postgres, Team von 3 …"}
+            placeholder="2021–2024 Backend bei Acme, Node/Postgres, Team von 3 …"
           />
         </Card>
 
-        <Card title="Basisdaten">
+        <Card id="basis" title="Basisdaten" collapsible>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
               label="Name"
@@ -173,6 +179,7 @@ export function CvEditor({
         </Card>
 
         <Repeatable
+          id="links"
           label="Links"
           items={cv.basics.links}
           onChange={(links) => update({ basics: { ...cv.basics, links } })}
@@ -191,6 +198,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="erfahrung"
           label="Berufserfahrung"
           items={cv.experience}
           onChange={(experience) => update({ experience })}
@@ -255,6 +263,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="projekte"
           label="Projekte"
           items={cv.projects}
           onChange={(projects) => update({ projects })}
@@ -263,11 +272,7 @@ export function CvEditor({
           render={(project, patch) => (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field
-                  label="Name"
-                  value={project.name}
-                  onChange={(v) => patch({ name: v })}
-                />
+                <Field label="Name" value={project.name} onChange={(v) => patch({ name: v })} />
                 <Field
                   label="URL"
                   value={project.url ?? ""}
@@ -291,6 +296,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="kenntnisse"
           label="Kenntnisse"
           items={cv.skills}
           onChange={(skills) => update({ skills })}
@@ -315,6 +321,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="ausbildung"
           label="Ausbildung"
           items={cv.education}
           onChange={(education) => update({ education })}
@@ -372,6 +379,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="zertifikate"
           label="Zertifikate"
           items={cv.certifications}
           onChange={(certifications) => update({ certifications })}
@@ -396,6 +404,7 @@ export function CvEditor({
         />
 
         <Repeatable
+          id="sprachen"
           label="Sprachen"
           items={cv.languages}
           onChange={(languages) => update({ languages })}
@@ -416,14 +425,27 @@ export function CvEditor({
       </div>
 
       <aside className="hidden xl:block">
-        <div className="sticky top-4">
-          <p className="mb-2 flex items-baseline justify-between gap-3 text-xs font-medium text-slate-500">
-            <span>Live-Vorschau · {TEMPLATES[design.template].label}</span>
-            <Link href="/design" className="text-slate-500 underline-offset-2 hover:underline">
+        <div className="sticky top-[57px] space-y-2 pt-2">
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <span className="text-muted">
+              Vorschau · {TEMPLATES[design.template].label}
+              <span
+                className={`ml-2 rounded px-1.5 py-0.5 font-medium ${
+                  pages === 1 ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn"
+                }`}
+              >
+                {pages} {pages === 1 ? "Seite" : "Seiten"}
+              </span>
+            </span>
+            <Link href="/design" className="text-muted underline-offset-2 hover:underline">
               Design ändern
             </Link>
-          </p>
-          <DocumentPreview pageHeight={pageContentHeightPx(design)}>
+          </div>
+          <DocumentPreview
+            scale={0.64}
+            pageHeight={pageContentHeightPx(design)}
+            onPagesChange={setPages}
+          >
             <CvDocument cv={cv} design={design} photoUrl={photoUrl} />
           </DocumentPreview>
         </div>

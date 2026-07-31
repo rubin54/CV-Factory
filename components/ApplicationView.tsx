@@ -1,21 +1,20 @@
 "use client";
 
-import { useState } from "react";
-
 import Link from "next/link";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
+import { useToast } from "@/components/app/Toast";
 import { CoverLetterDocument } from "@/components/CoverLetterDocument";
 import { CvDocument } from "@/components/CvDocument";
 import { DesignPanel } from "@/components/DesignPanel";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { PageFitBar } from "@/components/PageFitBar";
-import { Button, Card, ErrorBanner } from "@/components/ui";
+import { Button, Card, EmptyState } from "@/components/ui";
 import { downloadPdf, postJson, putJson } from "@/lib/client-api";
 import type { Application } from "@/lib/cv-schema";
 import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
 
-const PREVIEW_SCALE = 0.62;
+const PREVIEW_SCALE = 0.64;
 
 export function ApplicationView({
   initial,
@@ -26,28 +25,25 @@ export function ApplicationView({
   globalDesign: Design;
   photoUrl: string | null;
 }) {
+  const toast = useToast();
   const [application, setApplication] = useState(initial);
   const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
   const [draftDesign, setDraftDesign] = useState<Design | null>(initial.design);
   const [editDesign, setEditDesign] = useState(false);
   const [tab, setTab] = useState<"cv" | "letter">("cv");
+  const [pages, setPages] = useState(1);
   const [busy, setBusy] = useState<
     null | "letter" | "pdf-cv" | "pdf-letter" | "retailor" | "design"
   >(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [pages, setPages] = useState(1);
   const docRef = useRef<HTMLDivElement>(null);
   const handlePages = useCallback((value: number) => setPages(value), []);
 
   const run = async (kind: NonNullable<typeof busy>, fn: () => Promise<void>) => {
     setBusy(kind);
-    setError(null);
-    setNotice(null);
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(null);
     }
@@ -61,6 +57,7 @@ export function ApplicationView({
       );
       setApplication(updated);
       setTab("letter");
+      toast.ok("Anschreiben erzeugt.");
     });
 
   const retailor = () =>
@@ -76,13 +73,13 @@ export function ApplicationView({
       );
       setApplication(updated);
       setTab("cv");
-      setNotice("Neu zugeschnitten. Ein vorheriges Anschreiben wurde verworfen.");
+      toast.ok("Neu zugeschnitten. Ein vorheriges Anschreiben wurde verworfen.");
     });
 
   const exportPdf = (target: "cv" | "letter") =>
     run(target === "cv" ? "pdf-cv" : "pdf-letter", async () => {
       const savedTo = await downloadPdf({ target, slug: application.slug });
-      setNotice(`PDF exportiert nach ${savedTo}`);
+      toast.ok(`PDF exportiert nach ${savedTo}`);
     });
 
   const saveDesign = (design: Design | null) =>
@@ -93,46 +90,49 @@ export function ApplicationView({
       );
       setApplication(updated);
       setDraftDesign(design);
-      setNotice(
-        design
-          ? "Design dieser Bewerbung gespeichert."
-          : "Zurück auf den globalen Standard.",
+      toast.ok(
+        design ? "Design dieser Bewerbung gespeichert." : "Zurück auf den globalen Standard.",
       );
     });
 
   // Was gerade gerendert wird: der Entwurf im Panel, sonst das gespeicherte
   // Design der Bewerbung, sonst der globale Standard.
   const activeDesign = draftDesign ?? application.design ?? globalDesign;
-  const designDirty =
-    JSON.stringify(draftDesign) !== JSON.stringify(application.design);
+  const designDirty = JSON.stringify(draftDesign) !== JSON.stringify(application.design);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[520px_minmax(0,1fr)]">
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <Button
-            variant={tab === "cv" ? "primary" : "secondary"}
-            onClick={() => setTab("cv")}
-          >
-            Lebenslauf
-          </Button>
-          <Button
-            variant={tab === "letter" ? "primary" : "secondary"}
-            onClick={() => setTab("letter")}
-            disabled={!application.coverLetter}
-          >
-            Anschreiben
-          </Button>
+    <div className="grid gap-5 xl:grid-cols-[540px_minmax(0,1fr)]">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex overflow-hidden rounded-md border border-line-strong">
+            {(["cv", "letter"] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                disabled={id === "letter" && !application.coverLetter}
+                className={`px-2.5 py-1.5 text-[13px] font-medium transition disabled:opacity-40 ${
+                  tab === id ? "bg-accent text-accent-text" : "bg-surface text-muted hover:bg-sunken"
+                }`}
+              >
+                {id === "cv" ? "Lebenslauf" : "Anschreiben"}
+              </button>
+            ))}
+          </div>
         </div>
-        <PageFitBar
-          label={TEMPLATES[activeDesign.template].label}
-          pages={pages}
-          design={activeDesign}
-          docRef={docRef}
-          pageHeight={pageContentHeightPx(activeDesign)}
-          scale={PREVIEW_SCALE}
-          onApply={setDraftDesign}
-        />
+
+        {tab === "cv" && (
+          <PageFitBar
+            label={TEMPLATES[activeDesign.template].label}
+            pages={pages}
+            design={activeDesign}
+            docRef={docRef}
+            pageHeight={pageContentHeightPx(activeDesign)}
+            scale={PREVIEW_SCALE}
+            onApply={setDraftDesign}
+          />
+        )}
+
         <DocumentPreview
           scale={PREVIEW_SCALE}
           pageHeight={pageContentHeightPx(activeDesign)}
@@ -152,21 +152,10 @@ export function ApplicationView({
         </DocumentPreview>
       </div>
 
-      <div className="space-y-4">
-        <ErrorBanner message={error} />
-        {notice && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {notice}
-          </p>
-        )}
-
+      <div className="space-y-3">
         <Card title="Aktionen">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              onClick={generateLetter}
-              pending={busy === "letter"}
-            >
+          <div className="flex flex-wrap gap-1.5">
+            <Button variant="primary" onClick={generateLetter} pending={busy === "letter"}>
               {application.coverLetter ? "Anschreiben neu schreiben" : "Anschreiben schreiben"}
             </Button>
             <Button onClick={() => exportPdf("cv")} pending={busy === "pdf-cv"}>
@@ -183,7 +172,7 @@ export function ApplicationView({
               Neu zuschneiden
             </Button>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-2.5 font-mono text-[11px] text-faint">
             data/applications/{application.slug}.json
           </p>
         </Card>
@@ -191,21 +180,24 @@ export function ApplicationView({
         <Card
           title="Design"
           actions={
-            <Button onClick={() => setEditDesign((value) => !value)}>
+            <Button size="sm" onClick={() => setEditDesign((v) => !v)}>
               {editDesign ? "Zuklappen" : "Anpassen"}
             </Button>
           }
         >
-          <p className="text-sm text-slate-700">
+          <p className="text-[13px] text-muted">
             {application.design ? (
               <>
-                Eigenes Design: <strong>{TEMPLATES[application.design.template].label}</strong>
+                Eigenes Design:{" "}
+                <strong className="text-ink">
+                  {TEMPLATES[application.design.template].label}
+                </strong>
               </>
             ) : (
               <>
                 Folgt dem globalen Standard (
-                <strong>{TEMPLATES[globalDesign.template].label}</strong>) — ändert sich
-                mit, wenn du ihn unter{" "}
+                <strong className="text-ink">{TEMPLATES[globalDesign.template].label}</strong>
+                ) — ändert sich mit, wenn du ihn unter{" "}
                 <Link href="/design" className="underline underline-offset-2">
                   Design
                 </Link>{" "}
@@ -215,10 +207,11 @@ export function ApplicationView({
           </p>
 
           {editDesign && (
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-1.5">
                 <Button
                   variant="primary"
+                  size="sm"
                   onClick={() => saveDesign(draftDesign ?? activeDesign)}
                   pending={busy === "design"}
                   disabled={!designDirty && Boolean(application.design)}
@@ -227,6 +220,7 @@ export function ApplicationView({
                 </Button>
                 {application.design && (
                   <Button
+                    size="sm"
                     onClick={() => saveDesign(null)}
                     pending={busy === "design"}
                     title="Diese Bewerbung folgt wieder dem globalen Standard"
@@ -240,31 +234,38 @@ export function ApplicationView({
                 onChange={setDraftDesign}
                 photoUrl={photoUrl}
                 onPhotoChange={setPhotoUrl}
+                previewCv={application.cv}
               />
             </div>
           )}
         </Card>
 
-        <Card title="Was Claude geändert hat">
-          <BulletList items={application.rationale} empty="Keine Begründung geliefert." />
+        <Card title="Was Claude geändert hat" collapsible>
+          {application.rationale.length === 0 ? (
+            <p className="text-[13px] text-faint">Keine Begründung geliefert.</p>
+          ) : (
+            <ul className="list-disc space-y-1 pl-5 text-[13px]">
+              {application.rationale.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          )}
         </Card>
 
-        <Card title={`Lücken (${application.gaps.length})`}>
-          <p className="mb-2 text-xs text-slate-500">
-            Anforderungen ohne Beleg im Master-CV. Diese stehen bewusst nicht im
-            Lebenslauf — hier entscheidest du, ob sich die Bewerbung lohnt oder ob dir
-            ein Beleg nur im Master-CV fehlt.
+        <Card title={`Lücken · ${application.gaps.length}`} collapsible>
+          <p className="mb-2 text-xs text-muted">
+            Anforderungen ohne Beleg im Master-CV. Diese stehen bewusst nicht im Lebenslauf —
+            hier entscheidest du, ob sich die Bewerbung lohnt oder ob dir ein Beleg nur im
+            Master-CV fehlt.
           </p>
           {application.gaps.length === 0 ? (
-            <p className="text-sm text-emerald-700">
-              Keine — alle Anforderungen sind belegt.
-            </p>
+            <p className="text-[13px] text-ok">Keine — alle Anforderungen sind belegt.</p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-1">
               {application.gaps.map((gap, i) => (
                 <li
                   key={i}
-                  className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-sm text-amber-900"
+                  className="rounded border border-warn/25 bg-warn-soft px-2.5 py-1.5 text-[13px] text-warn"
                 >
                   {gap}
                 </li>
@@ -273,15 +274,15 @@ export function ApplicationView({
           )}
         </Card>
 
-        <Card title="Belegte Begriffe aus der Anzeige">
+        <Card title="Belegte Begriffe aus der Anzeige" collapsible defaultOpen={false}>
           {application.matchedKeywords.length === 0 ? (
-            <p className="text-sm text-slate-400">Keine.</p>
+            <EmptyState title="Keine Begriffe erfasst." />
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {application.matchedKeywords.map((keyword, i) => (
                 <span
                   key={i}
-                  className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-700"
+                  className="rounded border border-line bg-sunken px-1.5 py-0.5 text-[11px] text-muted"
                 >
                   {keyword}
                 </span>
@@ -290,23 +291,12 @@ export function ApplicationView({
           )}
         </Card>
 
-        <Card title="Stellenanzeige">
-          <pre className="max-h-72 overflow-auto text-xs whitespace-pre-wrap text-slate-600">
+        <Card title="Stellenanzeige" collapsible defaultOpen={false}>
+          <pre className="max-h-72 overflow-auto text-[11px] leading-relaxed whitespace-pre-wrap text-muted">
             {application.jobPosting}
           </pre>
         </Card>
       </div>
     </div>
-  );
-}
-
-function BulletList({ items, empty }: { items: string[]; empty: string }) {
-  if (items.length === 0) return <p className="text-sm text-slate-400">{empty}</p>;
-  return (
-    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-      {items.map((item, i) => (
-        <li key={i}>{item}</li>
-      ))}
-    </ul>
   );
 }

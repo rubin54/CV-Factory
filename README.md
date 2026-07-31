@@ -43,7 +43,34 @@ cp data/cv.example.json data/cv.json     # PowerShell: Copy-Item data/cv.example
    hat, welche Begriffe der Anzeige belegt sind, und welche Anforderungen **keinen**
    Beleg im Master-CV haben.
 3. **Bewerbung öffnen** — Anschreiben erzeugen, PDFs exportieren, oder mit demselben
-   Anzeigentext neu zuschneiden.
+   Anzeigentext neu zuschneiden. Hier lässt sich auch das Design abweichend vom
+   globalen Standard setzen — konservativ für Konzerne, mutiger für Startups.
+
+## Design
+
+Unter `/design` wird der Standard für alle Bewerbungen gesetzt, mit Live-Vorschau und
+einem Vergleichsmodus, der alle Vorlagen nebeneinander zeigt.
+
+**Drei Vorlagen:**
+
+| Vorlage | Aufbau | Parser |
+|---|---|---|
+| **Linear** | Streng einspaltig mit fester Datumsspalte links. Wirkt über Typografie und Weißraum. | Maximal sicher |
+| **Kompakt** | Kopfzeile über die volle Breite, schmale Seitenspalte für Kontakt/Kenntnisse/Sprachen, rechts der Fließtext. | Haupttext bleibt einspaltig |
+| **Akzent** | Farbiges Kopfband, getönte Kacheln in der Seitenspalte, größere Typo. | Für Direktbewerbungen |
+
+Dazu fünf abgestimmte Akzentfarben, vier Schriftpaarungen (Plex, Source, Grotesk,
+Literata — bewusst keine System-Schriften), drei Dichtestufen und drei Seitenrandbreiten.
+Kuratierte Sets statt freier Farb- und Größenwahl: ein Lebenslauf mit selbstgewählter
+Farbe und Schrift sieht in den meisten Fällen schlechter aus als einer aus abgestimmten
+Vorgaben.
+
+**Bewerbungsfoto** — Upload unter `/design`, pro Bewerbung zuschaltbar. In Deutschland
+üblich, in den USA, UK und weiten Teilen Europas dagegen unerwünscht. Das Bild liegt in
+`data/` (nicht in `public/`) und wird über `/api/photo` ausgeliefert.
+
+**Seitenränder** kommen von Puppeteer, nicht aus dem CSS — nur so greifen sie auf jeder
+Seite und nicht bloß auf der ersten.
 
 ### Die Lücken-Liste ist der Punkt
 
@@ -62,7 +89,9 @@ Alles liegt als JSON im Projekt, versionierbar mit Git:
 |---|---|
 | `data/cv.json` | Master-CV — die einzige Quelle |
 | `data/cv.example.json` | Beispiel zum Kopieren / als Formatreferenz |
-| `data/applications/<slug>.json` | Pro Bewerbung: Anzeige, zugeschnittener CV, Anschreiben, Begründung, Lücken |
+| `data/design.json` | Globale Design-Einstellungen |
+| `data/photo.*` | Bewerbungsfoto, falls hochgeladen |
+| `data/applications/<slug>.json` | Pro Bewerbung: Anzeige, zugeschnittener CV, Anschreiben, Begründung, Lücken, optional eigenes Design |
 | `export/` | Erzeugte PDFs (gitignored) |
 
 Die JSON-Dateien lassen sich von Hand editieren. Passt eine Datei nicht zum Schema,
@@ -76,7 +105,9 @@ kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten 
 | `lib/prompts.ts` | Die drei System-Prompts |
 | `lib/claude.ts` | Alle API-Aufrufe, Fehlerübersetzung, Prompt-Caching |
 | `lib/store.ts` | JSON-Dateien lesen/schreiben, jeweils gegen das Schema validiert |
-| `components/CvDocument.tsx` | Layout des Lebenslaufs — bestimmt, wie das PDF aussieht |
+| `lib/design.ts` | Vorlagen, Paletten, Schriftpaarungen, Dichte- und Randstufen |
+| `lib/fonts.ts` | Schriften über `next/font` — zur Buildzeit geladen, selbst gehostet |
+| `components/templates/` | Die drei Vorlagen plus ihre gemeinsamen Bausteine |
 | `app/api/pdf/route.ts` | Puppeteer rendert die Vorschauseite nach A4 |
 
 Modell: `claude-opus-5`, adaptives Denken. Effort `high` fürs Zuschneiden und
@@ -87,13 +118,24 @@ schema-konform, es gibt kein JSON-Parsing von Hand.
 Der API-Key wird ausschließlich serverseitig in Route Handlers verwendet und erreicht
 den Browser nie.
 
-### Ein anderes Layout
+### Eine eigene Vorlage
 
-`components/CvDocument.tsx` ist eine reine Präsentationskomponente ohne Datenzugriff.
-Eine zweite Variante ist eine weitere Datei plus eine Zeile in den drei Stellen, die
-sie einbinden (`app/preview/*`, `components/ApplicationView.tsx`, `components/CvEditor.tsx`).
-Ränder liefert Puppeteer (`app/api/pdf/route.ts`), damit sie auf jeder Seite greifen —
-im Print-CSS steht deshalb `padding: 0`.
+Die Vorlagen sind reine Präsentationskomponenten ohne Datenzugriff. Alle Größen und
+Farben kommen aus CSS-Variablen, die `designToCssVars()` auf den Dokument-Container
+setzt — deshalb wirken Palette, Schrift und Dichte in jeder Vorlage automatisch.
+
+Für eine neue Vorlage: Datei in `components/templates/` anlegen (die Bausteine aus
+`shared.tsx` nehmen ab, was sich wiederholt), die ID in `TEMPLATE_IDS` und `TEMPLATES`
+in `lib/design.ts` ergänzen und in die Registry in `components/CvDocument.tsx` eintragen.
+Sonst nichts — Vorschau, PDF-Export und die Auswahl in der Oberfläche ziehen nach.
+
+Beim Layout zwei Dinge beachten:
+
+- `break-inside: avoid` auf `.doc-entry` verhindert, dass ein Eintrag am Seitenumbruch
+  zerrissen wird. Chromium hält sich daran, auch innerhalb der Grid-Spalten.
+- Eine durchgehend gefüllte Seitenspalte reißt beim Seitenumbruch am Seitenende ab.
+  Deshalb arbeitet „Kompakt" mit einer Haarlinie und „Akzent" mit einzelnen Kacheln
+  statt mit einer Fläche über die ganze Spalte.
 
 ## Befehle
 

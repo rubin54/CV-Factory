@@ -8,11 +8,20 @@ import {
   type Application,
   type Cv,
 } from "./cv-schema";
+import { DEFAULT_DESIGN, DesignSchema, type Design } from "./design";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const CV_PATH = path.join(DATA_DIR, "cv.json");
+const DESIGN_PATH = path.join(DATA_DIR, "design.json");
 const APPLICATIONS_DIR = path.join(DATA_DIR, "applications");
 export const EXPORT_DIR = path.join(process.cwd(), "export");
+
+/** Erlaubte Foto-Formate und der Dateiname, unter dem sie abgelegt werden. */
+export const PHOTO_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 /** Fehler beim Lesen einer Datei, die nicht zum Schema passt. */
 export class StoreValidationError extends Error {
@@ -52,6 +61,58 @@ export async function readCv(): Promise<Cv> {
 
 export async function writeCv(cv: Cv): Promise<void> {
   await writeJson(CV_PATH, CvSchema.parse(cv));
+}
+
+/** Globale Design-Einstellungen; Vorgabe, solange nichts gespeichert wurde. */
+export async function readDesign(): Promise<Design> {
+  return (await readJson(DESIGN_PATH, DesignSchema)) ?? DEFAULT_DESIGN;
+}
+
+export async function writeDesign(design: Design): Promise<void> {
+  await writeJson(DESIGN_PATH, DesignSchema.parse(design));
+}
+
+/**
+ * Das Design einer Bewerbung: eigene Einstellung, sonst die globale. So ändert
+ * ein Wechsel der Standardvorlage alle Bewerbungen mit, die keine eigene haben.
+ */
+export async function resolveDesign(application?: Application | null): Promise<Design> {
+  return application?.design ?? (await readDesign());
+}
+
+/** Pfad des hinterlegten Bewerbungsfotos, oder null. */
+export async function findPhoto(): Promise<{ path: string; mtimeMs: number } | null> {
+  for (const ext of new Set(Object.values(PHOTO_TYPES))) {
+    const candidate = path.join(DATA_DIR, `photo.${ext}`);
+    try {
+      const stat = await fs.stat(candidate);
+      return { path: candidate, mtimeMs: stat.mtimeMs };
+    } catch {
+      /* nächste Endung probieren */
+    }
+  }
+  return null;
+}
+
+/**
+ * URL fürs Foto inklusive Cache-Buster. Ohne den zeigt die Vorschau nach einem
+ * Upload weiter das alte Bild — auch im Puppeteer-Chromium.
+ */
+export async function photoUrl(): Promise<string | null> {
+  const photo = await findPhoto();
+  return photo ? `/api/photo?v=${Math.round(photo.mtimeMs)}` : null;
+}
+
+export async function writePhoto(data: Buffer, extension: string): Promise<void> {
+  await removePhoto();
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.writeFile(path.join(DATA_DIR, `photo.${extension}`), data);
+}
+
+export async function removePhoto(): Promise<void> {
+  for (const ext of new Set(Object.values(PHOTO_TYPES))) {
+    await fs.rm(path.join(DATA_DIR, `photo.${ext}`), { force: true });
+  }
 }
 
 /**

@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
+import Link from "next/link";
+
 import { CvDocument } from "@/components/CvDocument";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import {
   Button,
   Card,
@@ -14,8 +17,17 @@ import {
 } from "@/components/ui";
 import { postJson, putJson, downloadPdf } from "@/lib/client-api";
 import type { Cv } from "@/lib/cv-schema";
+import { TEMPLATES, type Design } from "@/lib/design";
 
-export function CvEditor({ initialCv }: { initialCv: Cv }) {
+export function CvEditor({
+  initialCv,
+  design,
+  photoUrl,
+}: {
+  initialCv: Cv;
+  design: Design;
+  photoUrl: string | null;
+}) {
   const [cv, setCv] = useState<Cv>(initialCv);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<null | "save" | "extract" | "pdf">(null);
@@ -405,42 +417,17 @@ export function CvEditor({ initialCv }: { initialCv: Cv }) {
 
       <aside className="hidden xl:block">
         <div className="sticky top-4">
-          <p className="mb-2 text-xs font-medium text-slate-500">Live-Vorschau</p>
+          <p className="mb-2 flex items-baseline justify-between gap-3 text-xs font-medium text-slate-500">
+            <span>Live-Vorschau · {TEMPLATES[design.template].label}</span>
+            <Link href="/design" className="text-slate-500 underline-offset-2 hover:underline">
+              Design ändern
+            </Link>
+          </p>
           <DocumentPreview>
-            <CvDocument cv={cv} />
+            <CvDocument cv={cv} design={design} photoUrl={photoUrl} />
           </DocumentPreview>
         </div>
       </aside>
-    </div>
-  );
-}
-
-/**
- * Skaliert das A4-Dokument (210mm ≈ 794px) auf die Breite der Seitenspalte.
- * Die Höhe wird mitskaliert, damit darunter kein Loch entsteht.
- */
-export function DocumentPreview({
-  children,
-  scale = 0.62,
-}: {
-  children: React.ReactNode;
-  scale?: number;
-}) {
-  return (
-    <div
-      className="overflow-hidden"
-      style={{ width: `${794 * scale}px`, maxWidth: "100%" }}
-    >
-      <div
-        style={{
-          width: "794px",
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          marginBottom: `${-(1 - scale) * 100}%`,
-        }}
-      >
-        {children}
-      </div>
     </div>
   );
 }

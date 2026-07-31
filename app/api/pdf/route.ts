@@ -5,7 +5,8 @@ import puppeteer from "puppeteer";
 import * as z from "zod";
 
 import { errorResponse, parseBody } from "@/lib/api";
-import { assertSafeSlug, EXPORT_DIR, readApplication } from "@/lib/store";
+import { MARGINS } from "@/lib/design";
+import { assertSafeSlug, EXPORT_DIR, readApplication, resolveDesign } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -23,13 +24,14 @@ export async function POST(req: Request) {
 
     let previewPath: string;
     let filename: string;
+    let application = null;
 
     if (body.target === "master") {
       previewPath = "/preview/cv";
       filename = "lebenslauf.pdf";
     } else {
       const slug = assertSafeSlug(body.slug);
-      const application = await readApplication(slug);
+      application = await readApplication(slug);
       if (!application) {
         return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
       }
@@ -45,7 +47,9 @@ export async function POST(req: Request) {
         body.target === "cv" ? `${slug}-lebenslauf.pdf` : `${slug}-anschreiben.pdf`;
     }
 
-    const pdf = await renderPdf(`${origin}${previewPath}`);
+    // Die Ränder kommen aus dem Design, damit die Einstellung im PDF wirkt.
+    const design = await resolveDesign(application);
+    const pdf = await renderPdf(`${origin}${previewPath}`, MARGINS[design.margin].mm);
 
     // Zusätzlich zur Download-Antwort auf die Platte, damit man Versionen
     // vergleichen kann ohne jedes Mal neu zu exportieren.
@@ -65,7 +69,7 @@ export async function POST(req: Request) {
   }
 }
 
-async function renderPdf(url: string): Promise<Buffer> {
+async function renderPdf(url: string, marginMm: number): Promise<Buffer> {
   const browser = await puppeteer.launch({ headless: true });
   try {
     const page = await browser.newPage();
@@ -81,7 +85,12 @@ async function renderPdf(url: string): Promise<Buffer> {
       printBackground: true,
       // Ränder kommen von hier statt aus dem CSS, damit sie auf jeder Seite
       // greifen und nicht nur oben auf Seite 1.
-      margin: { top: "16mm", bottom: "16mm", left: "16mm", right: "16mm" },
+      margin: {
+        top: `${marginMm}mm`,
+        bottom: `${marginMm}mm`,
+        left: `${marginMm}mm`,
+        right: `${marginMm}mm`,
+      },
     });
     return Buffer.from(pdf);
   } finally {

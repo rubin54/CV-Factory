@@ -1,5 +1,7 @@
 import * as z from "zod";
 
+import { DesignSchema } from "./design";
+
 /**
  * Ein Schema für drei Zwecke: TypeScript-Typen, Validierung beim Lesen der
  * JSON-Dateien, und via `zodOutputFormat()` das JSON-Schema für Claudes
@@ -125,6 +127,12 @@ export const ApplicationSchema = z.object({
   matchedKeywords: z.array(z.string()),
   gaps: z.array(z.string()),
   coverLetter: CoverLetterSchema.nullable(),
+  /**
+   * Design-Abweichung nur für diese Bewerbung — null bedeutet: globale
+   * Einstellung aus data/design.json. `.default(null)` hält ältere bzw. von
+   * Hand geschriebene Dateien ohne das Feld gültig.
+   */
+  design: DesignSchema.nullable().default(null),
 });
 
 export type Link = z.infer<typeof LinkSchema>;

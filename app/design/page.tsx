@@ -1,18 +1,18 @@
-import { CvEditor } from "@/components/CvEditor";
+import { DesignStudio } from "@/components/DesignStudio";
 import { PageShell } from "@/components/PageShell";
 import { photoUrl, readCv, readDesign } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export default async function MasterCvPage() {
+export default async function DesignPage() {
   const [cv, design, photo] = await Promise.all([readCv(), readDesign(), photoUrl()]);
 
   return (
     <PageShell
-      title="Master-CV"
-      subtitle="Die Quelle für alle zugeschnittenen Varianten. Liegt in data/cv.json."
+      title="Design"
+      subtitle="Standard für alle Bewerbungen. Einzelne Bewerbungen können davon abweichen."
     >
-      <CvEditor initialCv={cv} design={design} photoUrl={photo} />
+      <DesignStudio cv={cv} initialDesign={design} initialPhotoUrl={photo} />
     </PageShell>
   );
 }

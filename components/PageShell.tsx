@@ -19,6 +19,9 @@ export function PageShell({
         <Link href="/cv" className="text-slate-600 hover:text-slate-900">
           Master-CV
         </Link>
+        <Link href="/design" className="text-slate-600 hover:text-slate-900">
+          Design
+        </Link>
       </nav>
       <header className="mb-5">
         <h1 className="text-xl font-semibold text-slate-900">{title}</h1>

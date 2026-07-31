@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { CoverLetterDocument } from "@/components/CoverLetterDocument";
-import { readApplication } from "@/lib/store";
+import { readApplication, resolveDesign } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export default async function CoverLetterPreview({
       basics={application.cv.basics}
       letter={application.coverLetter}
       company={application.company}
+      design={await resolveDesign(application)}
     />
   );
 }

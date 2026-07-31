@@ -48,6 +48,9 @@ export async function POST(req: Request) {
       gaps: result.gaps,
       // Ein neu zugeschnittener CV entwertet ein zuvor erzeugtes Anschreiben.
       coverLetter: null,
+      // Das Design gehört zur Bewerbung, nicht zum Inhalt — es überlebt einen
+      // neuen Zuschnitt.
+      design: existing?.design ?? null,
     };
 
     await writeApplication(application);

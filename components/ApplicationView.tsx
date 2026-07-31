@@ -2,19 +2,34 @@
 
 import { useState } from "react";
 
+import Link from "next/link";
+
 import { CoverLetterDocument } from "@/components/CoverLetterDocument";
 import { CvDocument } from "@/components/CvDocument";
-import { DocumentPreview } from "@/components/CvEditor";
+import { DesignPanel } from "@/components/DesignPanel";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { Button, Card, ErrorBanner } from "@/components/ui";
-import { downloadPdf, postJson } from "@/lib/client-api";
+import { downloadPdf, postJson, putJson } from "@/lib/client-api";
 import type { Application } from "@/lib/cv-schema";
+import { TEMPLATES, type Design } from "@/lib/design";
 
-export function ApplicationView({ initial }: { initial: Application }) {
+export function ApplicationView({
+  initial,
+  globalDesign,
+  photoUrl: initialPhotoUrl,
+}: {
+  initial: Application;
+  globalDesign: Design;
+  photoUrl: string | null;
+}) {
   const [application, setApplication] = useState(initial);
+  const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
+  const [draftDesign, setDraftDesign] = useState<Design | null>(initial.design);
+  const [editDesign, setEditDesign] = useState(false);
   const [tab, setTab] = useState<"cv" | "letter">("cv");
-  const [busy, setBusy] = useState<null | "letter" | "pdf-cv" | "pdf-letter" | "retailor">(
-    null,
-  );
+  const [busy, setBusy] = useState<
+    null | "letter" | "pdf-cv" | "pdf-letter" | "retailor" | "design"
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -63,6 +78,27 @@ export function ApplicationView({ initial }: { initial: Application }) {
       setNotice(`PDF exportiert nach ${savedTo}`);
     });
 
+  const saveDesign = (design: Design | null) =>
+    run("design", async () => {
+      const { application: updated } = await putJson<{ application: Application }>(
+        "/api/design",
+        { design, slug: application.slug },
+      );
+      setApplication(updated);
+      setDraftDesign(design);
+      setNotice(
+        design
+          ? "Design dieser Bewerbung gespeichert."
+          : "Zurück auf den globalen Standard.",
+      );
+    });
+
+  // Was gerade gerendert wird: der Entwurf im Panel, sonst das gespeicherte
+  // Design der Bewerbung, sonst der globale Standard.
+  const activeDesign = draftDesign ?? application.design ?? globalDesign;
+  const designDirty =
+    JSON.stringify(draftDesign) !== JSON.stringify(application.design);
+
   return (
     <div className="grid gap-6 xl:grid-cols-[520px_minmax(0,1fr)]">
       <div className="space-y-3">
@@ -83,12 +119,13 @@ export function ApplicationView({ initial }: { initial: Application }) {
         </div>
         <DocumentPreview>
           {tab === "cv" ? (
-            <CvDocument cv={application.cv} />
+            <CvDocument cv={application.cv} design={activeDesign} photoUrl={photoUrl} />
           ) : application.coverLetter ? (
             <CoverLetterDocument
               basics={application.cv.basics}
               letter={application.coverLetter}
               company={application.company}
+              design={activeDesign}
             />
           ) : null}
         </DocumentPreview>
@@ -128,6 +165,63 @@ export function ApplicationView({ initial }: { initial: Application }) {
           <p className="mt-3 text-xs text-slate-500">
             data/applications/{application.slug}.json
           </p>
+        </Card>
+
+        <Card
+          title="Design"
+          actions={
+            <Button onClick={() => setEditDesign((value) => !value)}>
+              {editDesign ? "Zuklappen" : "Anpassen"}
+            </Button>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            {application.design ? (
+              <>
+                Eigenes Design: <strong>{TEMPLATES[application.design.template].label}</strong>
+              </>
+            ) : (
+              <>
+                Folgt dem globalen Standard (
+                <strong>{TEMPLATES[globalDesign.template].label}</strong>) — ändert sich
+                mit, wenn du ihn unter{" "}
+                <Link href="/design" className="underline underline-offset-2">
+                  Design
+                </Link>{" "}
+                anpasst.
+              </>
+            )}
+          </p>
+
+          {editDesign && (
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="primary"
+                  onClick={() => saveDesign(draftDesign ?? activeDesign)}
+                  pending={busy === "design"}
+                  disabled={!designDirty && Boolean(application.design)}
+                >
+                  Für diese Bewerbung speichern
+                </Button>
+                {application.design && (
+                  <Button
+                    onClick={() => saveDesign(null)}
+                    pending={busy === "design"}
+                    title="Diese Bewerbung folgt wieder dem globalen Standard"
+                  >
+                    Auf Standard zurücksetzen
+                  </Button>
+                )}
+              </div>
+              <DesignPanel
+                design={activeDesign}
+                onChange={setDraftDesign}
+                photoUrl={photoUrl}
+                onPhotoChange={setPhotoUrl}
+              />
+            </div>
+          )}
         </Card>
 
         <Card title="Was Claude geändert hat">

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ApplicationView } from "@/components/ApplicationView";
 import { PageShell } from "@/components/PageShell";
-import { readApplication } from "@/lib/store";
+import { photoUrl, readApplication, readDesign } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,8 @@ export default async function ApplicationPage({
   const application = await readApplication(slug);
   if (!application) notFound();
 
+  const [globalDesign, photo] = await Promise.all([readDesign(), photoUrl()]);
+
   return (
     <PageShell
       title={application.role}
@@ -22,7 +24,11 @@ export default async function ApplicationPage({
         application.updatedAt,
       ).toLocaleString("de-DE")}`}
     >
-      <ApplicationView initial={application} />
+      <ApplicationView
+        initial={application}
+        globalDesign={globalDesign}
+        photoUrl={photo}
+      />
     </PageShell>
   );
 }

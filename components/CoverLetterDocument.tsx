@@ -25,7 +25,7 @@ export function CoverLetterDocument({
   });
 
   return (
-    <DocShell design={design} template={design.template}>
+    <DocShell design={design}>
       <header className="flex items-start justify-between gap-8">
         <div>
           <p className="doc-display text-[1.5em] leading-tight font-bold tracking-[-0.02em]">

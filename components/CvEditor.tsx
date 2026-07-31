@@ -17,7 +17,7 @@ import {
 } from "@/components/ui";
 import { postJson, putJson, downloadPdf } from "@/lib/client-api";
 import type { Cv } from "@/lib/cv-schema";
-import { TEMPLATES, type Design } from "@/lib/design";
+import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
 
 export function CvEditor({
   initialCv,
@@ -423,7 +423,7 @@ export function CvEditor({
               Design ändern
             </Link>
           </p>
-          <DocumentPreview>
+          <DocumentPreview pageHeight={pageContentHeightPx(design)}>
             <CvDocument cv={cv} design={design} photoUrl={photoUrl} />
           </DocumentPreview>
         </div>

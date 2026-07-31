@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
-import type { Cv, Experience, Link as CvLink } from "@/lib/cv-schema";
+import type { Cv } from "@/lib/cv-schema";
 import type { Design } from "@/lib/design";
 import { designToCssVars } from "@/lib/design";
-import { displayUrl, formatRange, withProtocol } from "@/lib/format";
+import { displayUrl, withProtocol } from "@/lib/format";
 
 /** Was jedes Template als Props bekommt. */
 export type TemplateProps = {
@@ -13,41 +13,41 @@ export type TemplateProps = {
   photoUrl: string | null;
 };
 
+/** Wie ein Abschnitt dargestellt wird — bestimmt vom Template, nicht vom Inhalt. */
+export type SectionVariant = "main" | "aside" | "timeline";
+
 /**
  * Setzt die Design-Variablen und die Template-Klasse. Alles darunter liest nur
  * noch `var(--…)` — deshalb wirkt jede Einstellung in allen Templates gleich.
  */
 export function DocShell({
   design,
-  template,
   children,
 }: {
   design: Design;
-  template: string;
   children: ReactNode;
 }) {
   return (
     <div className="doc-shell" style={designToCssVars(design)}>
-      <article className={`doc tpl-${template}`}>{children}</article>
+      <article className={`doc tpl-${design.template}`}>
+        {children}
+        {design.showFooter && <DocFooter />}
+      </article>
     </div>
   );
 }
 
-export function Section({
-  title,
-  children,
-  className = "",
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
+function DocFooter() {
+  const stand = new Date().toLocaleDateString("de-DE", { month: "long", year: "numeric" });
   return (
-    <section className={`doc-section ${className}`}>
-      <h2 className="doc-h2 doc-label doc-heading">{title}</h2>
-      {children}
-    </section>
+    <footer className="doc-mono doc-muted mt-6 border-t pt-2 text-[0.72em]" style={{ borderColor: "var(--rule)" }}>
+      Stand: {stand}
+    </footer>
   );
+}
+
+export function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="doc-h2 doc-heading">{children}</h2>;
 }
 
 /** Titelzeile eines Eintrags: Bezeichnung links, Zeitraum rechts. */
@@ -75,27 +75,127 @@ export function Bullets({ items }: { items: string[] }) {
   );
 }
 
-/** Tech-Stacks, Sprachlisten: mono, gedämpft, mit Mittelpunkt getrennt. */
-export function MetaList({ items, className = "" }: { items: string[]; className?: string }) {
+/** Tech-Stacks und Ähnliches: mono, gedämpft, mit Mittelpunkt getrennt. */
+export function MetaList({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <p className={`doc-mono doc-muted mt-1 text-[0.78em] ${className}`}>
-      {items.join("  ·  ")}
+    <p className="doc-mono doc-muted mt-1 flex flex-wrap gap-x-2 text-[0.78em]">
+      {items.map((item, i) => (
+        <Fragment key={item}>
+          {i > 0 && <span className="opacity-40">·</span>}
+          <span>{item}</span>
+        </Fragment>
+      ))}
     </p>
   );
 }
 
-export function LinkList({ links, separator }: { links: CvLink[]; separator: string }) {
-  if (links.length === 0) return null;
-  return (
+export function ExternalLink({ url, label }: { url: string; label?: string }) {
+  return <a href={withProtocol(url)}>{label || displayUrl(url)}</a>;
+}
+
+/* ---------------------------------------------------------------------------
+   Symbole. Bewusst als Inline-SVG mit currentColor und aria-hidden: der Text
+   daneben bleibt unverändert, ein Parser liest also weiterhin die Adresse und
+   nicht ein Icon-Font-Zeichen.
+   --------------------------------------------------------------------------- */
+
+type IconName = "mail" | "phone" | "pin" | "link";
+
+const ICON_PATHS: Record<IconName, ReactNode> = {
+  mail: (
     <>
-      {links.map((link, i) => (
-        <span key={`${link.url}-${i}`}>
-          {i > 0 && <span className="opacity-50">{separator}</span>}
-          <a href={withProtocol(link.url)}>{link.label || displayUrl(link.url)}</a>
-        </span>
-      ))}
+      <rect x="2.5" y="4" width="11" height="8" rx="1.2" />
+      <path d="M2.8 4.8 8 9l5.2-4.2" />
     </>
+  ),
+  phone: (
+    <path d="M4 2.8h2.2l1.1 2.7-1.4 1a7.5 7.5 0 0 0 3.6 3.6l1-1.4 2.7 1.1v2.2a1 1 0 0 1-1.1 1A11 11 0 0 1 3 3.9 1 1 0 0 1 4 2.8Z" />
+  ),
+  pin: (
+    <>
+      <path d="M8 14s4.5-4.6 4.5-7.6a4.5 4.5 0 0 0-9 0C3.5 9.4 8 14 8 14Z" />
+      <circle cx="8" cy="6.4" r="1.7" />
+    </>
+  ),
+  link: (
+    <>
+      <circle cx="8" cy="8" r="5.6" />
+      <path d="M2.4 8h11.2M8 2.4c1.5 1.7 2.3 3.6 2.3 5.6S9.5 12 8 13.6C6.5 12 5.7 10 5.7 8S6.5 4.1 8 2.4Z" />
+    </>
+  ),
+};
+
+export function Icon({ name }: { name: IconName }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+      className="doc-icon"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ICON_PATHS[name]}
+    </svg>
+  );
+}
+
+export type ContactItem = { icon: IconName; text: string };
+
+export function contactItems(cv: Cv): ContactItem[] {
+  const items: ContactItem[] = [];
+  if (cv.basics.email) items.push({ icon: "mail", text: cv.basics.email });
+  if (cv.basics.phone) items.push({ icon: "phone", text: cv.basics.phone });
+  if (cv.basics.location) items.push({ icon: "pin", text: cv.basics.location });
+  return items;
+}
+
+/** Kontaktangaben in einer Zeile (Kopfzeile) oder untereinander (Seitenspalte). */
+export function ContactBlock({
+  cv,
+  design,
+  layout,
+  separator = "  ·  ",
+}: {
+  cv: Cv;
+  design: Design;
+  layout: "inline" | "stacked";
+  separator?: string;
+}): ReactNode {
+  const items = contactItems(cv);
+  if (items.length === 0) return null;
+
+  if (layout === "stacked") {
+    return (
+      <div className="doc-mono space-y-0.5 text-[0.8em] break-words">
+        {items.map((item) => (
+          <p key={item.text} className="flex items-baseline gap-1.5">
+            {design.showIcons && <Icon name={item.icon} />}
+            <span>{item.text}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  // Abstände über flex-gap statt über Leerzeichen im Text: HTML kollabiert
+  // mehrfache Leerzeichen, dadurch klebte der Trenner am nächsten Symbol.
+  return (
+    <p className="doc-mono flex flex-wrap items-baseline gap-x-2 text-[0.78em]">
+      {items.map((item, i) => (
+        <Fragment key={item.text}>
+          {i > 0 && <span className="opacity-40">{separator}</span>}
+          <span className="inline-flex items-baseline gap-1">
+            {design.showIcons && <Icon name={item.icon} />}
+            <span>{item.text}</span>
+          </span>
+        </Fragment>
+      ))}
+    </p>
   );
 }
 
@@ -119,27 +219,5 @@ export function Photo({
       className={`doc-photo shrink-0 ${isRound ? "doc-photo-kreis" : ""}`}
       style={{ width: `${size}mm`, height: `${isRound ? size : size * 1.2}mm` }}
     />
-  );
-}
-
-/** Eine Berufsstation — in allen Templates gleich aufgebaut. */
-export function ExperienceEntry({ job }: { job: Experience }) {
-  return (
-    <div className="doc-entry">
-      <EntryHead left={job.role} right={formatRange(job.startDate, job.endDate)} />
-      <p className="doc-accent text-[0.9em] font-medium">
-        {[job.company, job.location].filter(Boolean).join(" · ")}
-      </p>
-      {job.summary && <p className="doc-muted mt-1">{job.summary}</p>}
-      <Bullets items={job.bullets} />
-      <MetaList items={job.technologies} />
-    </div>
-  );
-}
-
-/** Kontaktangaben als Zeilen (Seitenspalte) oder als eine Zeile (Kopfzeile). */
-export function contactItems(cv: Cv): string[] {
-  return [cv.basics.email, cv.basics.phone, cv.basics.location].filter(
-    (value): value is string => Boolean(value),
   );
 }

@@ -5,7 +5,6 @@ import puppeteer from "puppeteer";
 import * as z from "zod";
 
 import { errorResponse, parseBody } from "@/lib/api";
-import { MARGINS } from "@/lib/design";
 import { assertSafeSlug, EXPORT_DIR, readApplication, resolveDesign } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
 
     // Die Ränder kommen aus dem Design, damit die Einstellung im PDF wirkt.
     const design = await resolveDesign(application);
-    const pdf = await renderPdf(`${origin}${previewPath}`, MARGINS[design.margin].mm);
+    const pdf = await renderPdf(`${origin}${previewPath}`, design.margin);
 
     // Zusätzlich zur Download-Antwort auf die Platte, damit man Versionen
     // vergleichen kann ohne jedes Mal neu zu exportieren.

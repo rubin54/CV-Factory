@@ -1,16 +1,20 @@
 import type { Cv } from "@/lib/cv-schema";
-import type { Design } from "@/lib/design";
+import type { Design, TemplateId } from "@/lib/design";
 
 import { AkzentTemplate } from "./templates/AkzentTemplate";
+import { DichtTemplate } from "./templates/DichtTemplate";
+import { KlassikTemplate } from "./templates/KlassikTemplate";
 import { KompaktTemplate } from "./templates/KompaktTemplate";
 import { LinearTemplate } from "./templates/LinearTemplate";
 import type { TemplateProps } from "./templates/shared";
 
 const TEMPLATE_COMPONENTS = {
+  klassik: KlassikTemplate,
   linear: LinearTemplate,
   kompakt: KompaktTemplate,
   akzent: AkzentTemplate,
-} satisfies Record<Design["template"], (props: TemplateProps) => React.ReactNode>;
+  dicht: DichtTemplate,
+} satisfies Record<TemplateId, (props: TemplateProps) => React.ReactNode>;
 
 /**
  * Wählt das Template aus den Design-Einstellungen. Dieselbe Komponente rendert

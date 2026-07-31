@@ -3,15 +3,19 @@
 import { useState } from "react";
 
 import Link from "next/link";
+import { useCallback, useRef } from "react";
 
 import { CoverLetterDocument } from "@/components/CoverLetterDocument";
 import { CvDocument } from "@/components/CvDocument";
 import { DesignPanel } from "@/components/DesignPanel";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { PageFitBar } from "@/components/PageFitBar";
 import { Button, Card, ErrorBanner } from "@/components/ui";
 import { downloadPdf, postJson, putJson } from "@/lib/client-api";
 import type { Application } from "@/lib/cv-schema";
-import { TEMPLATES, type Design } from "@/lib/design";
+import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
+
+const PREVIEW_SCALE = 0.62;
 
 export function ApplicationView({
   initial,
@@ -32,6 +36,9 @@ export function ApplicationView({
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pages, setPages] = useState(1);
+  const docRef = useRef<HTMLDivElement>(null);
+  const handlePages = useCallback((value: number) => setPages(value), []);
 
   const run = async (kind: NonNullable<typeof busy>, fn: () => Promise<void>) => {
     setBusy(kind);
@@ -117,7 +124,21 @@ export function ApplicationView({
             Anschreiben
           </Button>
         </div>
-        <DocumentPreview>
+        <PageFitBar
+          label={TEMPLATES[activeDesign.template].label}
+          pages={pages}
+          design={activeDesign}
+          docRef={docRef}
+          pageHeight={pageContentHeightPx(activeDesign)}
+          scale={PREVIEW_SCALE}
+          onApply={setDraftDesign}
+        />
+        <DocumentPreview
+          scale={PREVIEW_SCALE}
+          pageHeight={pageContentHeightPx(activeDesign)}
+          onPagesChange={handlePages}
+          measureRef={docRef}
+        >
           {tab === "cv" ? (
             <CvDocument cv={application.cv} design={activeDesign} photoUrl={photoUrl} />
           ) : application.coverLetter ? (

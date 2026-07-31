@@ -51,19 +51,40 @@ cp data/cv.example.json data/cv.json     # PowerShell: Copy-Item data/cv.example
 Unter `/design` wird der Standard für alle Bewerbungen gesetzt, mit Live-Vorschau und
 einem Vergleichsmodus, der alle Vorlagen nebeneinander zeigt.
 
-**Drei Vorlagen:**
+**Fünf Vorlagen:**
 
 | Vorlage | Aufbau | Parser |
 |---|---|---|
-| **Linear** | Streng einspaltig mit fester Datumsspalte links. Wirkt über Typografie und Weißraum. | Maximal sicher |
-| **Kompakt** | Kopfzeile über die volle Breite, schmale Seitenspalte für Kontakt/Kenntnisse/Sprachen, rechts der Fließtext. | Haupttext bleibt einspaltig |
+| **Klassik** | Zentrierte Kopfzeile, Kontaktzeile mit Trennstrichen, Abschnittstitel über einer Linie. Der De-facto-Standard in der Tech-Branche. | Maximal sicher |
+| **Linear** | Streng einspaltig mit fester Datumsspalte links. Die Zeiträume bilden eine durchgehende Achse. | Maximal sicher |
+| **Kompakt** | Kopfzeile über die volle Breite, schmale Seitenspalte links für Nachschlagbares, rechts der Fließtext. | Haupttext einspaltig |
 | **Akzent** | Farbiges Kopfband, getönte Kacheln in der Seitenspalte, größere Typo. | Für Direktbewerbungen |
+| **Dicht** | Zweispaltiges Raster mit Seitenspalte rechts, für viele Stationen und Projekte. | Das riskanteste Layout |
 
-Dazu fünf abgestimmte Akzentfarben, vier Schriftpaarungen (Plex, Source, Grotesk,
-Literata — bewusst keine System-Schriften), drei Dichtestufen und drei Seitenrandbreiten.
-Kuratierte Sets statt freier Farb- und Größenwahl: ein Lebenslauf mit selbstgewählter
-Farbe und Schrift sieht in den meisten Fällen schlechter aus als einer aus abgestimmten
-Vorgaben.
+Dazu fünf abgestimmte Akzentfarben und vier Schriftpaarungen (Plex, Source, Grotesk,
+Literata — bewusst keine System-Schriften). Farben und Schriften sind kuratierte Sets;
+Schriftgröße, Zeilenabstand, Abstände und Seitenrand dagegen stufenlos, weil der
+Auto-Fit dazwischen sucht.
+
+### Seitenumbrüche und Auto-Fit
+
+Die Vorschau zeichnet ein, wo die Seiten umbrechen, und zeigt die Seitenzahl. Berechnet
+wird das nach demselben Modell, das auch Chromium beim Druck anwendet: Blöcke mit
+`break-inside: avoid` werden nicht zerschnitten, sondern komplett auf die nächste Seite
+geschoben. Über 30 Vergleiche (5 Vorlagen × 6 Lebenslauflängen) stimmte die angezeigte
+Seitenzahl exakt mit dem exportierten PDF überein.
+
+„Auf 1 Seite" sucht per Binärsuche die größte Schrift, bei der es noch passt: erst
+Schriftgröße, Zeilenabstand und Abstände gemeinsam, dann ein zweiter Durchlauf, der den
+Zeilenabstand wieder aufmacht, solange die Seitenzahl hält. Gemessen wird am echten
+Layout über CSS-Variablen, ohne React dazwischen.
+
+### Abschnitte
+
+Reihenfolge, Sichtbarkeit und — bei den Vorlagen mit Seitenspalte — die Spaltenzuordnung
+sind einstellbar, global und pro Bewerbung. Die Voreinstellung folgt dem, was für
+Software-Lebensläufe empfohlen wird: Profil, Erfahrung, Projekte, Ausbildung im
+Hauptteil, Nachschlagbares in die Seitenspalte.
 
 **Bewerbungsfoto** — Upload unter `/design`, pro Bewerbung zuschaltbar. In Deutschland
 üblich, in den USA, UK und weiten Teilen Europas dagegen unerwünscht. Das Bild liegt in
@@ -105,9 +126,12 @@ kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten 
 | `lib/prompts.ts` | Die drei System-Prompts |
 | `lib/claude.ts` | Alle API-Aufrufe, Fehlerübersetzung, Prompt-Caching |
 | `lib/store.ts` | JSON-Dateien lesen/schreiben, jeweils gegen das Schema validiert |
-| `lib/design.ts` | Vorlagen, Paletten, Schriftpaarungen, Dichte- und Randstufen |
+| `lib/design.ts` | Vorlagen, Paletten, Schriftpaarungen, Abschnittsplan, Größen |
+| `lib/paginate.ts` | Rechnet nach, wo Chromium umbricht — Grundlage für Vorschau und Auto-Fit |
+| `lib/autofit.ts` | Binärsuche nach der größten Schrift, die noch passt |
 | `lib/fonts.ts` | Schriften über `next/font` — zur Buildzeit geladen, selbst gehostet |
-| `components/templates/` | Die drei Vorlagen plus ihre gemeinsamen Bausteine |
+| `components/templates/sections.tsx` | Die Abschnitte als Bausteine; Reihenfolge kommt aus dem Design |
+| `components/templates/` | Die fünf Vorlagen plus ihre gemeinsamen Bausteine |
 | `app/api/pdf/route.ts` | Puppeteer rendert die Vorschauseite nach A4 |
 
 Modell: `claude-opus-5`, adaptives Denken. Effort `high` fürs Zuschneiden und
@@ -129,13 +153,24 @@ Für eine neue Vorlage: Datei in `components/templates/` anlegen (die Bausteine 
 in `lib/design.ts` ergänzen und in die Registry in `components/CvDocument.tsx` eintragen.
 Sonst nichts — Vorschau, PDF-Export und die Auswahl in der Oberfläche ziehen nach.
 
-Beim Layout zwei Dinge beachten:
+Beim Layout vier Dinge beachten — alle am exportierten PDF gemessen, nicht vermutet:
 
-- `break-inside: avoid` auf `.doc-entry` verhindert, dass ein Eintrag am Seitenumbruch
-  zerrissen wird. Chromium hält sich daran, auch innerhalb der Grid-Spalten.
-- Eine durchgehend gefüllte Seitenspalte reißt beim Seitenumbruch am Seitenende ab.
-  Deshalb arbeitet „Kompakt" mit einer Haarlinie und „Akzent" mit einzelnen Kacheln
-  statt mit einer Fläche über die ganze Spalte.
+- **Sperrung ab etwa 0,11 em zerlegt Text.** Chromium schreibt weit gesperrte
+  Überschriften glyphenweise ins PDF; die Textextraktion — und damit jeder ATS-Parser —
+  liest dann `B E R U F S E R F A H R U N G`. Die Abschnittstitel stehen deshalb auf
+  0,08 em.
+- **`font-variant-caps: all-small-caps` zerlegt Text immer**, unabhängig von der
+  Sperrung: Chromium synthetisiert Kapitälchen glyphenweise. „Klassik" nutzt deshalb
+  `text-transform: uppercase` in kleinerem Grad statt echter Kapitälchen.
+- **`break-inside: avoid` auf `.doc-entry`** verhindert, dass ein Eintrag am
+  Seitenumbruch zerrissen wird. Chromium hält sich daran, auch innerhalb der Grid-Spalten.
+- **Eine durchgehend gefüllte Seitenspalte reißt beim Seitenumbruch ab.** Deshalb
+  arbeitet „Kompakt" mit einer Haarlinie und „Akzent" mit einzelnen Kacheln statt mit
+  einer Fläche über die ganze Spalte.
+
+Die Spaltenlayouts stellen im DOM immer den Hauptteil vor die Seitenspalte und
+positionieren die Spalte per Grid — so liest ein Parser die Berufserfahrung vor der
+Kenntnisliste, obwohl sie rechts steht.
 
 ## Befehle
 

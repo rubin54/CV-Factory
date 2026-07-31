@@ -1,4 +1,4 @@
-# CV Creator
+# CV Factory
 
 Lokale Web-App, die aus einem gepflegten Master-Lebenslauf pro Stellenanzeige eine
 zugeschnittene Variante plus Anschreiben erzeugt — und beides als PDF exportiert.

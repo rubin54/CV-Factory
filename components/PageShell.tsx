@@ -14,7 +14,7 @@ export function PageShell({
     <div className="mx-auto max-w-[1500px] px-6 py-6">
       <nav className="mb-6 flex items-center gap-5 text-sm">
         <Link href="/" className="font-semibold text-slate-900">
-          CV Creator
+          CV Factory
         </Link>
         <Link href="/cv" className="text-slate-600 hover:text-slate-900">
           Master-CV

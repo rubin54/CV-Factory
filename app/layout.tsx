@@ -4,7 +4,7 @@ import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CV Creator",
+  title: "CV Factory",
   description: "Lokaler Lebenslauf-Generator mit Claude",
 };
 

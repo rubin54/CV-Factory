@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/app/AppShell";
 import { NewApplicationForm } from "@/components/NewApplicationForm";
+import { StatusBadge } from "@/components/Status";
 import { Card, EmptyState } from "@/components/ui";
+import { formatUsd, totalCost } from "@/lib/format";
 import { listApplications, readCv } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const [cv, applications] = await Promise.all([readCv(), listApplications()]);
   const hasMasterCv = Boolean(cv.basics.fullName);
-  const withLetter = applications.filter((a) => a.coverLetter).length;
-  const openGaps = applications.reduce((sum, a) => sum + a.gaps.length, 0);
+  const sent = applications.filter((a) => a.status !== "entwurf").length;
+  const interviews = applications.filter(
+    (a) => a.status === "gespraech" || a.status === "zusage",
+  ).length;
+  const spent = applications.reduce((sum, a) => sum + totalCost(a.usage), 0);
 
   return (
     <AppShell
@@ -22,10 +27,15 @@ export default async function HomePage() {
         <NewApplicationForm disabled={!hasMasterCv} />
 
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
-            <Stat value={applications.length} label="Bewerbungen" />
-            <Stat value={withLetter} label="mit Anschreiben" />
-            <Stat value={openGaps} label="Lücken gesamt" tone={openGaps > 0 ? "warn" : "ok"} />
+          <div className="grid grid-cols-2 gap-2">
+            <Stat value={String(applications.length)} label="Bewerbungen" />
+            <Stat value={String(sent)} label="verschickt" />
+            <Stat
+              value={String(interviews)}
+              label="Gespräch oder Zusage"
+              tone={interviews > 0 ? "ok" : "neutral"}
+            />
+            <Stat value={formatUsd(spent)} label="Claude, geschätzt" />
           </div>
 
           <Card title="Zuletzt bearbeitet">
@@ -58,8 +68,11 @@ export default async function HomePage() {
                           )}
                         </span>
                       </span>
-                      <span className="shrink-0 text-[11px] text-faint tabular-nums">
-                        {new Date(app.updatedAt).toLocaleDateString("de-DE")}
+                      <span className="flex shrink-0 items-center gap-2">
+                        <StatusBadge status={app.status} />
+                        <span className="text-[11px] text-faint tabular-nums">
+                          {new Date(app.updatedAt).toLocaleDateString("de-DE")}
+                        </span>
                       </span>
                     </Link>
                   </li>
@@ -78,7 +91,7 @@ function Stat({
   label,
   tone = "neutral",
 }: {
-  value: number;
+  value: string;
   label: string;
   tone?: "neutral" | "ok" | "warn";
 }) {

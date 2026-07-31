@@ -33,11 +33,33 @@ Zum Ausprobieren mit Beispieldaten:
 cp data/cv.example.json data/cv.json     # PowerShell: Copy-Item data/cv.example.json data/cv.json
 ```
 
+### Ohne API-Aufrufe arbeiten
+
+`CV_FACTORY_CLAUDE=fixture` in der `.env.local` schaltet die drei KI-Aktionen auf
+aufgezeichnete Antworten aus `data/fixtures/` um. Kein Key, keine Kosten, keine zwei
+Minuten Wartezeit — die App verhält sich sonst identisch. Das ist der Modus zum
+Arbeiten an Vorlagen, Layout und Bedienung.
+
+Fixtures laufen durch dasselbe Zod-Schema wie eine echte Antwort. Eine Aufzeichnung,
+die nach einer Schema-Änderung nicht mehr passt, fällt deshalb mit einer klaren
+Meldung auf, statt still mit Daten weiterzuarbeiten, die die API nicht mehr liefern
+würde.
+
+`CV_FACTORY_CLAUDE=record` ruft normal auf und legt die Antwort zusätzlich als Fixture
+ab. Einmal pro Aktion aufnehmen, danach reicht `fixture`.
+
+Die mitgelieferten Fixtures sind von Hand aus `cv.example.json` gebaut und als solche
+erkennbar — sie zeigen, dass der Modus aktiv ist.
+
 ## Ablauf
 
-1. **Master-CV** (`/cv`) — einmal pflegen. Entweder direkt im Formular oder über
-   „Notizen einwerfen“: unsortierten Text einfügen, Claude ordnet ihn in die Felder
-   ein und ergänzt den bestehenden Stand. Übernommen wird erst mit „Speichern“.
+1. **Master-CV** (`/cv`) — einmal pflegen. Entweder direkt im Formular, über
+   „Notizen einwerfen“ (unsortierten Text einfügen, Claude ordnet ihn in die Felder ein
+   und ergänzt den bestehenden Stand) oder über **„Bestehenden Lebenslauf einlesen“**:
+   PDF, DOCX oder Textdatei. Ein PDF geht unverändert an die API — Claude liest die
+   Seiten samt Layout, statt hier zu Text zerlegt zu werden, was bei zweispaltigen
+   Lebensläufen die Spalten ineinanderschiebt. Übernommen wird in allen drei Fällen
+   erst mit „Speichern“.
 2. **Neue Bewerbung** (`/`) — Firma, Rolle und den Text der Stellenanzeige einfügen.
    Claude priorisiert und formuliert um, und liefert dazu drei Listen: was es geändert
    hat, welche Begriffe der Anzeige belegt sind, und welche Anforderungen **keinen**
@@ -45,6 +67,10 @@ cp data/cv.example.json data/cv.json     # PowerShell: Copy-Item data/cv.example
 3. **Bewerbung öffnen** — Anschreiben erzeugen, PDFs exportieren, oder mit demselben
    Anzeigentext neu zuschneiden. Hier lässt sich auch das Design abweichend vom
    globalen Standard setzen — konservativ für Konzerne, mutiger für Startups.
+4. **Status pflegen** — Entwurf, Beworben, Gespräch, Absage, Zusage, dazu ein Notizfeld
+   für Termin, Ansprechpartner oder den Grund der Absage. Der Status steht als Kennzeichen
+   in der Liste auf der Startseite; das Datum wird nur gestempelt, wenn sich der Status
+   wirklich ändert, nicht beim Bearbeiten der Notiz.
 
 ## Design
 
@@ -100,6 +126,10 @@ steht. Anforderungen ohne Beleg landen deshalb nicht im Lebenslauf, sondern in
 `gaps` — sichtbar in der Bewerbungsansicht. Das ist die Liste, an der du entscheidest,
 ob sich die Bewerbung lohnt oder ob dir nur ein Eintrag im Master-CV fehlt.
 
+Für den zweiten Fall führt „Beleg ergänzen“ direkt in die Notizen des Master-CVs, mit
+der Lücke schon eingetragen und einem Rückweg zur Bewerbung. Ergänzen, speichern,
+zurück, neu zuschneiden — die Lücke ist damit ein Arbeitsschritt statt einer Sackgasse.
+
 Prüfe trotzdem stichprobenartig gegen: LLM-Ausgabe ist kein Beweis.
 
 ## Daten
@@ -112,11 +142,41 @@ Alles liegt als JSON im Projekt, versionierbar mit Git:
 | `data/cv.example.json` | Beispiel zum Kopieren / als Formatreferenz |
 | `data/design.json` | Globale Design-Einstellungen |
 | `data/photo.*` | Bewerbungsfoto, falls hochgeladen |
-| `data/applications/<slug>.json` | Pro Bewerbung: Anzeige, zugeschnittener CV, Anschreiben, Begründung, Lücken, optional eigenes Design |
+| `data/applications/<slug>.json` | Pro Bewerbung: Anzeige, zugeschnittener CV, Anschreiben, Begründung, Lücken, Status, Aufwand, optional eigenes Design |
+| `data/fixtures/*.json` | Aufgezeichnete Claude-Antworten für den Fixture-Modus |
+| `data/.backups/` | Vorherige Stände, automatisch (gitignored) |
 | `export/` | Erzeugte PDFs (gitignored) |
 
 Die JSON-Dateien lassen sich von Hand editieren. Passt eine Datei nicht zum Schema,
 kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten UIs.
+
+### Sicherungen
+
+Jedes Schreiben legt den vorherigen Stand unter `data/.backups/<datei>/<zeitstempel>.json`
+ab, die letzten 25 pro Datei bleiben. Geschrieben wird über eine temporäre Datei mit
+anschließendem Umbenennen — ein Abbruch mitten im Schreiben hinterlässt damit entweder
+den alten oder den neuen Stand, nie eine halbe Datei.
+
+Zurückholen geht in der Oberfläche: Karte „Sicherungen“ auf der CV- und der
+Bewerbungsseite. Das Wiederherstellen ist selbst ein Schreibvorgang und wird deshalb
+ebenfalls gesichert — ein Fehlgriff kostet nichts. Vor dem Zurückschreiben läuft der
+Stand durch das Schema; eine Sicherung, die nicht mehr passt, wird abgelehnt, statt
+die App lahmzulegen.
+
+Das deckt die zwei Fälle ab, in denen bisher etwas verloren ging: ein „Einarbeiten“
+oder ein Import, der den Master-CV verschlechtert, und ein „Neu zuschneiden“, das den
+vorherigen Zuschnitt samt Anschreiben überschreibt.
+
+### Was ein Aufruf gekostet hat
+
+Zu jedem Claude-Aufruf werden Tokenzahlen, Dauer und eine Kostenschätzung mitgeschrieben
+und pro Bewerbung unter „Aufwand“ aufgelistet; die Summe über alle Bewerbungen steht auf
+der Startseite. Während eines Aufrufs läuft eine Sekundenanzeige mit — bei ein bis zwei
+Minuten Laufzeit ist ein bloßer Spinner nicht von einem Hänger zu unterscheiden.
+
+Die Kosten sind eine **Schätzung** aus der Preistabelle in `lib/claude.ts`, keine
+abgerechneten Beträge. Stimmt die Tabelle nicht mehr, lässt sie sich über
+`CV_FACTORY_PRICE_IN` / `CV_FACTORY_PRICE_OUT` korrigieren.
 
 ## Aufbau
 
@@ -124,8 +184,8 @@ kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten 
 |---|---|
 | `lib/cv-schema.ts` | Ein Zod-Schema für Typen, Validierung **und** Claudes Structured Outputs |
 | `lib/prompts.ts` | Die drei System-Prompts |
-| `lib/claude.ts` | Alle API-Aufrufe, Fehlerübersetzung, Prompt-Caching |
-| `lib/store.ts` | JSON-Dateien lesen/schreiben, jeweils gegen das Schema validiert |
+| `lib/claude.ts` | Alle API-Aufrufe, Fehlerübersetzung, Prompt-Caching, Fixture-Modus, Kostenschätzung |
+| `lib/store.ts` | JSON-Dateien lesen/schreiben, jeweils gegen das Schema validiert, mit Sicherung |
 | `lib/design.ts` | Vorlagen, Paletten, Schriftpaarungen, Abschnittsplan, Größen |
 | `lib/paginate.ts` | Rechnet nach, wo Chromium umbricht — Grundlage für Vorschau und Auto-Fit |
 | `lib/autofit.ts` | Binärsuche nach der größten Schrift, die noch passt |
@@ -136,7 +196,7 @@ kommt beim Laden eine Fehlermeldung mit dem konkreten Feld statt eines kaputten 
 | `app/api/pdf/route.ts` | Puppeteer rendert die Vorschauseite nach A4 |
 
 Modell: `claude-opus-5`, adaptives Denken. Effort `high` fürs Zuschneiden und
-Anschreiben, `medium` fürs Strukturieren von Notizen. Die Aufrufe nutzen
+Anschreiben, `medium` fürs Strukturieren von Notizen und den Import. Die Aufrufe nutzen
 `messages.parse()` mit `zodOutputFormat()` — die Antwort ist damit garantiert
 schema-konform, es gibt kein JSON-Parsing von Hand.
 

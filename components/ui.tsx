@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import { formatDuration } from "@/lib/format";
 
 export function Button({
   children,
@@ -45,6 +47,41 @@ export function Button({
       {pending && <Spinner />}
       {children}
     </button>
+  );
+}
+
+/**
+ * Milliseconds since `active` became true, 0 while it is false.
+ *
+ * The Claude calls run for one to two minutes. A spinner alone says nothing
+ * during that time — you cannot tell a slow call from a hung one. A running
+ * counter does.
+ */
+export function useElapsed(active: boolean): number {
+  const [ms, setMs] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setMs(0);
+      return;
+    }
+    const start = performance.now();
+    setMs(0);
+    const id = setInterval(() => setMs(performance.now() - start), 250);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return ms;
+}
+
+/** Renders the counter from `useElapsed`; nothing while idle. */
+export function Elapsed({ ms, hint }: { ms: number; hint?: string }) {
+  if (ms <= 0) return null;
+  return (
+    <span className="text-[11px] text-faint tabular-nums" aria-live="polite">
+      läuft seit {formatDuration(ms)}
+      {hint && <span className="ml-1.5">{hint}</span>}
+    </span>
   );
 }
 

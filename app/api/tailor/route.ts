@@ -29,7 +29,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await tailorCv(masterCv, body.jobPosting, body.company, body.role);
+    const { data: result, usage } = await tailorCv(
+      masterCv,
+      body.jobPosting,
+      body.company,
+      body.role,
+    );
 
     const slug = body.slug ?? slugify(body.company, body.role);
     const existing = await readApplication(slug);
@@ -47,10 +52,18 @@ export async function POST(req: Request) {
       matchedKeywords: result.matchedKeywords,
       gaps: result.gaps,
       // A freshly tailored CV invalidates any cover letter written before it.
+      // The previous version stays in data/.backups/ — a re-tailoring you did
+      // not want is undoable.
       coverLetter: null,
       // The design belongs to the application, not to its content — it survives
       // a re-tailoring.
       design: existing?.design ?? null,
+      // Status and cost history likewise: they describe the application, not
+      // this particular cut of the CV.
+      status: existing?.status ?? "entwurf",
+      statusChangedAt: existing?.statusChangedAt ?? null,
+      statusNote: existing?.statusNote ?? "",
+      usage: [...(existing?.usage ?? []), usage],
     };
 
     await writeApplication(application);

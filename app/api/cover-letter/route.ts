@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Bewerbung nicht gefunden." }, { status: 404 });
     }
 
-    const coverLetter = await writeCoverLetter(
+    const { data: coverLetter, usage } = await writeCoverLetter(
       application.cv,
       application.jobPosting,
       application.company,
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     const updated = {
       ...application,
       coverLetter,
+      usage: [...application.usage, usage],
       updatedAt: new Date().toISOString(),
     };
     await writeApplication(updated);

@@ -117,6 +117,51 @@ export const CoverLetterSchema = z.object({
   closing: z.string().describe('Grußformel, z.B. "Mit freundlichen Grüßen"'),
 });
 
+/**
+ * Where an application stands. Deliberately a short, linear list — anything
+ * finer grained turns into bookkeeping you stop maintaining after a week.
+ */
+export const APPLICATION_STATUSES = [
+  "entwurf",
+  "beworben",
+  "gespraech",
+  "absage",
+  "zusage",
+] as const;
+
+export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES);
+
+/** Label and colour token per status — shared by list, badge and selector. */
+export const STATUS_META: Record<
+  ApplicationStatus,
+  { label: string; tone: "neutral" | "accent" | "ok" | "warn" | "danger" }
+> = {
+  entwurf: { label: "Entwurf", tone: "neutral" },
+  beworben: { label: "Beworben", tone: "accent" },
+  gespraech: { label: "Gespräch", tone: "warn" },
+  absage: { label: "Absage", tone: "danger" },
+  zusage: { label: "Zusage", tone: "ok" },
+};
+
+/**
+ * What one Claude call cost. Written per call so the price of an application is
+ * visible instead of only showing up on the invoice at the end of the month.
+ */
+export const CallUsageSchema = z.object({
+  kind: z.enum(["extract", "import", "tailor", "cover-letter"]),
+  at: z.string(),
+  model: z.string(),
+  ms: z.number(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  cacheReadTokens: z.number(),
+  cacheWriteTokens: z.number(),
+  /** Estimate from the price table in lib/claude.ts, not a billed figure. */
+  costUsd: z.number(),
+  /** true when the answer came from a fixture — then nothing was charged. */
+  fixture: z.boolean(),
+});
+
 /** What sits on disk per application (`data/applications/<slug>.json`). */
 export const ApplicationSchema = z.object({
   slug: z.string(),
@@ -136,6 +181,17 @@ export const ApplicationSchema = z.object({
    * without the field valid.
    */
   design: DesignSchema.nullable().default(null),
+  /**
+   * Status of the application. `.default()` on all three, so files written
+   * before this existed stay readable.
+   */
+  status: ApplicationStatusSchema.default("entwurf"),
+  /** ISO timestamp of the last status change, null while still a draft. */
+  statusChangedAt: z.string().nullable().default(null),
+  /** Free text on the status: interview date, reason for rejection, contact. */
+  statusNote: z.string().default(""),
+  /** One entry per Claude call for this application, oldest first. */
+  usage: z.array(CallUsageSchema).default([]),
 });
 
 export type Link = z.infer<typeof LinkSchema>;
@@ -150,6 +206,8 @@ export type Cv = z.infer<typeof CvSchema>;
 export type TailoringResult = z.infer<typeof TailoringResultSchema>;
 export type CoverLetter = z.infer<typeof CoverLetterSchema>;
 export type Application = z.infer<typeof ApplicationSchema>;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+export type CallUsage = z.infer<typeof CallUsageSchema>;
 
 export function emptyCv(): Cv {
   return {

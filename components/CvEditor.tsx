@@ -1,19 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useToast } from "@/components/app/Toast";
+import { BackupPanel } from "@/components/BackupPanel";
 import { CvDocument } from "@/components/CvDocument";
 import { DocumentPreview } from "@/components/DocumentPreview";
-import { Button, Card, Field, Repeatable, StringList, TextArea } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Elapsed,
+  Field,
+  Repeatable,
+  StringList,
+  TextArea,
+  useElapsed,
+} from "@/components/ui";
 import { downloadPdf, postJson, putJson } from "@/lib/client-api";
-import type { Cv } from "@/lib/cv-schema";
+import type { CallUsage, Cv } from "@/lib/cv-schema";
 import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
+import { summarizeUsage } from "@/lib/format";
 
 /** Jump targets for the editor cards — same order as the form. */
 const ANCHORS = [
   ["notizen", "Notizen"],
+  ["import", "Import"],
   ["basis", "Basis"],
   ["links", "Links"],
   ["erfahrung", "Erfahrung"],
@@ -24,28 +36,40 @@ const ANCHORS = [
   ["sprachen", "Sprachen"],
 ] as const;
 
+type Busy = "save" | "extract" | "import" | "pdf";
+
 export function CvEditor({
   initialCv,
   design,
   photoUrl,
+  gap,
+  fromSlug,
 }: {
   initialCv: Cv;
   design: Design;
   photoUrl: string | null;
+  /** Missing evidence from an application's gaps list — prefills the notes. */
+  gap?: string | null;
+  /** Where that gap came from, so there is a way back after saving. */
+  fromSlug?: string | null;
 }) {
   const toast = useToast();
   const [cv, setCv] = useState<Cv>(initialCv);
   const [dirty, setDirty] = useState(false);
-  const [busy, setBusy] = useState<null | "save" | "extract" | "pdf">(null);
-  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState<null | Busy>(null);
+  const [notes, setNotes] = useState(gap ? `${gap}: ` : "");
   const [pages, setPages] = useState(1);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // Both go to Claude and take minutes; saving and the PDF do not.
+  const elapsed = useElapsed(busy === "extract" || busy === "import");
 
   const update = (patch: Partial<Cv>) => {
     setCv((current) => ({ ...current, ...patch }));
     setDirty(true);
   };
 
-  const run = async (kind: "save" | "extract" | "pdf", fn: () => Promise<void>) => {
+  const run = async (kind: Busy, fn: () => Promise<void>) => {
     setBusy(kind);
     try {
       await fn();
@@ -65,11 +89,34 @@ export function CvEditor({
 
   const extract = () =>
     run("extract", async () => {
-      const { cv: merged } = await postJson<{ cv: Cv }>("/api/extract", { rawText: notes });
+      const { cv: merged, usage } = await postJson<{ cv: Cv; usage: CallUsage }>(
+        "/api/extract",
+        { rawText: notes },
+      );
       setCv(merged);
       setDirty(true);
       setNotes("");
-      toast.ok("Notizen eingearbeitet — bitte durchsehen und dann speichern.");
+      toast.ok(
+        `Notizen eingearbeitet — bitte durchsehen und dann speichern. ${summarizeUsage(usage)}`,
+      );
+    });
+
+  /**
+   * An existing CV as a file. Same rule as for the notes: the result is merged
+   * into the form and nothing is written until you press save.
+   */
+  const importFile = (file: File) =>
+    run("import", async () => {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/import", { method: "POST", body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Import fehlgeschlagen.");
+      setCv(data.cv);
+      setDirty(true);
+      toast.ok(
+        `${file.name} eingelesen — bitte gegenlesen und dann speichern. ${summarizeUsage(data.usage)}`,
+      );
     });
 
   const exportPdf = () =>
@@ -97,6 +144,8 @@ export function CvEditor({
             Vorschau ↗
           </Link>
 
+          <Elapsed ms={elapsed} hint="— Claude liest" />
+
           <nav className="flex flex-1 flex-wrap justify-end gap-0.5">
             {ANCHORS.map(([id, label]) => (
               <a
@@ -109,6 +158,29 @@ export function CvEditor({
             ))}
           </nav>
         </div>
+
+        {gap && (
+          <div className="rounded-lg border border-warn/25 bg-warn-soft px-4 py-3 text-[13px] text-warn">
+            <p>
+              Fehlender Beleg aus einer Bewerbung: <strong>{gap}</strong>
+            </p>
+            <p className="mt-1 text-xs opacity-80">
+              Ergänze unten, was du dazu tatsächlich vorzuweisen hast, arbeite es ein und
+              speichere. Danach{" "}
+              {fromSlug ? (
+                <Link
+                  href={`/applications/${fromSlug}`}
+                  className="underline underline-offset-2"
+                >
+                  zurück zur Bewerbung
+                </Link>
+              ) : (
+                "zurück zur Bewerbung"
+              )}{" "}
+              und dort neu zuschneiden.
+            </p>
+          </div>
+        )}
 
         <Card
           id="notizen"
@@ -138,6 +210,43 @@ export function CvEditor({
             onChange={setNotes}
             placeholder="2021–2024 Backend bei Acme, Node/Postgres, Team von 3 …"
           />
+        </Card>
+
+        <Card
+          id="import"
+          title="Bestehenden Lebenslauf einlesen"
+          collapsible
+          defaultOpen={!initialCv.basics.fullName}
+        >
+          <p className="mb-2 text-xs text-muted">
+            PDF, DOCX oder Textdatei. Ein PDF geht unverändert an Claude — die Seiten werden
+            samt Layout gelesen, statt hier zu Text zerlegt zu werden, was bei zweispaltigen
+            Lebensläufen die Spalten ineinanderschiebt. Das Ergebnis landet im Formular und
+            wird erst gespeichert, wenn du es durchgesehen hast.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".pdf,.docx,.txt,.md,application/pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                // Reset, otherwise selecting the same file again fires nothing.
+                e.target.value = "";
+                if (file) void importFile(file);
+              }}
+              className="hidden"
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => fileInput.current?.click()}
+              pending={busy === "import"}
+            >
+              Datei wählen
+            </Button>
+            <span className="text-[11px] text-faint">bis 10 MB</span>
+          </div>
         </Card>
 
         <Card id="basis" title="Basisdaten" collapsible>
@@ -421,6 +530,11 @@ export function CvEditor({
               />
             </div>
           )}
+        />
+
+        <BackupPanel
+          target="cv"
+          note="Damit ist auch ein versehentliches Einarbeiten oder ein Import zurückzunehmen."
         />
       </div>
 

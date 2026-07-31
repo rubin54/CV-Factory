@@ -17,8 +17,8 @@ const BodySchema = z.object({ rawText: z.string().min(1, "Notizen sind leer") })
 export async function POST(req: Request) {
   try {
     const { rawText } = await parseBody(req, BodySchema);
-    const cv = await extractCv(rawText, await readCv());
-    return NextResponse.json({ cv });
+    const { data: cv, usage } = await extractCv(rawText, await readCv());
+    return NextResponse.json({ cv, usage });
   } catch (err) {
     return errorResponse(err);
   }

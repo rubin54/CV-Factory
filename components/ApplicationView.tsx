@@ -4,15 +4,19 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { useToast } from "@/components/app/Toast";
+import { BackupPanel } from "@/components/BackupPanel";
 import { CoverLetterDocument } from "@/components/CoverLetterDocument";
 import { CvDocument } from "@/components/CvDocument";
 import { DesignPanel } from "@/components/DesignPanel";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { PageFitBar } from "@/components/PageFitBar";
-import { Button, Card, EmptyState } from "@/components/ui";
+import { StatusPicker } from "@/components/Status";
+import { UsageCard } from "@/components/UsageCard";
+import { Button, Card, Elapsed, EmptyState, useElapsed } from "@/components/ui";
 import { downloadPdf, postJson, putJson } from "@/lib/client-api";
-import type { Application } from "@/lib/cv-schema";
+import type { Application, ApplicationStatus } from "@/lib/cv-schema";
 import { TEMPLATES, pageContentHeightPx, type Design } from "@/lib/design";
+import { summarizeUsage } from "@/lib/format";
 
 const PREVIEW_SCALE = 0.64;
 
@@ -33,10 +37,15 @@ export function ApplicationView({
   const [tab, setTab] = useState<"cv" | "letter">("cv");
   const [pages, setPages] = useState(1);
   const [busy, setBusy] = useState<
-    null | "letter" | "pdf-cv" | "pdf-letter" | "retailor" | "design"
+    null | "letter" | "pdf-cv" | "pdf-letter" | "retailor" | "design" | "status"
   >(null);
+  const [statusNote, setStatusNote] = useState(initial.statusNote);
   const docRef = useRef<HTMLDivElement>(null);
   const handlePages = useCallback((value: number) => setPages(value), []);
+
+  // Only the two Claude calls run long enough for a counter to be worth it.
+  const claudeRunning = busy === "letter" || busy === "retailor";
+  const elapsed = useElapsed(claudeRunning);
 
   const run = async (kind: NonNullable<typeof busy>, fn: () => Promise<void>) => {
     setBusy(kind);
@@ -57,7 +66,7 @@ export function ApplicationView({
       );
       setApplication(updated);
       setTab("letter");
-      toast.ok("Anschreiben erzeugt.");
+      toast.ok(`Anschreiben erzeugt. ${lastUsage(updated)}`);
     });
 
   const retailor = () =>
@@ -73,7 +82,19 @@ export function ApplicationView({
       );
       setApplication(updated);
       setTab("cv");
-      toast.ok("Neu zugeschnitten. Ein vorheriges Anschreiben wurde verworfen.");
+      toast.ok(
+        `Neu zugeschnitten. Ein vorheriges Anschreiben wurde verworfen — der alte Stand liegt unter Sicherungen. ${lastUsage(updated)}`,
+      );
+    });
+
+  const saveStatus = (status: ApplicationStatus, note: string) =>
+    run("status", async () => {
+      const { application: updated } = await putJson<{ application: Application }>(
+        "/api/status",
+        { slug: application.slug, status, note },
+      );
+      setApplication(updated);
+      setStatusNote(updated.statusNote);
     });
 
   const exportPdf = (target: "cv" | "letter") =>
@@ -172,9 +193,37 @@ export function ApplicationView({
               Neu zuschneiden
             </Button>
           </div>
-          <p className="mt-2.5 font-mono text-[11px] text-faint">
-            data/applications/{application.slug}.json
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="font-mono text-[11px] text-faint">
+              data/applications/{application.slug}.json
+            </p>
+            <Elapsed ms={elapsed} hint="— Claude denkt, das dauert ein bis zwei Minuten" />
+          </div>
+        </Card>
+
+        <Card title="Status">
+          <StatusPicker
+            value={application.status}
+            onChange={(status) => saveStatus(status, statusNote)}
+            disabled={busy === "status"}
+          />
+          <p className="mt-2 text-[11px] text-faint">
+            {application.statusChangedAt
+              ? `Zuletzt geändert am ${new Date(application.statusChangedAt).toLocaleDateString("de-DE")}`
+              : "Noch nicht verschickt."}
           </p>
+          <textarea
+            value={statusNote}
+            rows={2}
+            onChange={(e) => setStatusNote(e.target.value)}
+            onBlur={() => {
+              if (statusNote !== application.statusNote) {
+                void saveStatus(application.status, statusNote);
+              }
+            }}
+            placeholder="Notiz: Gesprächstermin, Ansprechpartner, Grund der Absage …"
+            className="mt-2 w-full resize-y rounded-md border border-line-strong bg-surface px-2.5 py-1.5 text-[13px] text-ink outline-none transition placeholder:text-faint focus:border-accent"
+          />
         </Card>
 
         <Card
@@ -256,7 +305,8 @@ export function ApplicationView({
           <p className="mb-2 text-xs text-muted">
             Anforderungen ohne Beleg im Master-CV. Diese stehen bewusst nicht im Lebenslauf —
             hier entscheidest du, ob sich die Bewerbung lohnt oder ob dir ein Beleg nur im
-            Master-CV fehlt.
+            Master-CV fehlt. „Beleg ergänzen“ bringt dich direkt in die Notizen des Master-CVs;
+            danach hier auf „Neu zuschneiden“.
           </p>
           {application.gaps.length === 0 ? (
             <p className="text-[13px] text-ok">Keine — alle Anforderungen sind belegt.</p>
@@ -265,14 +315,22 @@ export function ApplicationView({
               {application.gaps.map((gap, i) => (
                 <li
                   key={i}
-                  className="rounded border border-warn/25 bg-warn-soft px-2.5 py-1.5 text-[13px] text-warn"
+                  className="flex items-start gap-2 rounded border border-warn/25 bg-warn-soft px-2.5 py-1.5 text-[13px] text-warn"
                 >
-                  {gap}
+                  <span className="flex-1">{gap}</span>
+                  <Link
+                    href={`/cv?beleg=${encodeURIComponent(gap)}&von=${encodeURIComponent(application.slug)}`}
+                    className="shrink-0 rounded border border-warn/30 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap transition hover:bg-warn/10"
+                  >
+                    Beleg ergänzen
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
         </Card>
+
+        <UsageCard usage={application.usage} />
 
         <Card title="Belegte Begriffe aus der Anzeige" collapsible defaultOpen={false}>
           {application.matchedKeywords.length === 0 ? (
@@ -296,7 +354,18 @@ export function ApplicationView({
             {application.jobPosting}
           </pre>
         </Card>
+
+        <BackupPanel
+          target={`application:${application.slug}`}
+          note="Auch ein Neu-Zuschneiden landet hier — samt dem Anschreiben, das dabei verworfen wurde."
+        />
       </div>
     </div>
   );
+}
+
+/** Cost of the call that has just come back, for the confirmation toast. */
+function lastUsage(application: Application): string {
+  const latest = application.usage.at(-1);
+  return latest ? summarizeUsage(latest) : "";
 }

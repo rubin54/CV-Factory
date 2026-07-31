@@ -14,7 +14,11 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const CV_PATH = path.join(DATA_DIR, "cv.json");
 const DESIGN_PATH = path.join(DATA_DIR, "design.json");
 const APPLICATIONS_DIR = path.join(DATA_DIR, "applications");
+const BACKUP_DIR = path.join(DATA_DIR, ".backups");
 export const EXPORT_DIR = path.join(process.cwd(), "export");
+
+/** How many old versions to keep per file before the oldest ones are dropped. */
+const BACKUP_KEEP = 25;
 
 /** Accepted photo formats and the extension they are stored under. */
 export const PHOTO_TYPES: Record<string, string> = {
@@ -49,9 +53,141 @@ async function readJson<T>(file: string, schema: z.ZodType<T>): Promise<T | null
   return parsed.data;
 }
 
+/**
+ * Every write first copies the old state away and only then swaps in the new
+ * one via a temporary file. Two failure modes are covered by that: an
+ * overwrite you did not want (the previous version is in `data/.backups/`) and
+ * a crash mid-write (the target file is either the old or the new one, never
+ * half of both).
+ */
 async function writeJson(file: string, data: unknown): Promise<void> {
   await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, JSON.stringify(data, null, 2) + "\n", "utf8");
+  await backupExisting(file);
+  const tmp = `${file}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2) + "\n", "utf8");
+  await fs.rename(tmp, file);
+}
+
+/**
+ * Backup directory belonging to a data file: `data/cv.json` becomes
+ * `data/.backups/cv/`, `data/applications/acme.json` becomes
+ * `data/.backups/applications/acme/`. One directory per file, so the versions
+ * of different applications never mix.
+ */
+function backupDirFor(file: string): string {
+  const relative = path.relative(DATA_DIR, file).replace(/\.json$/, "");
+  return path.join(BACKUP_DIR, relative);
+}
+
+/** Sortable and safe as a file name: 2026-07-31T09-14-02-871Z.json */
+function backupStamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+async function backupExisting(file: string): Promise<void> {
+  let previous: string;
+  try {
+    previous = await fs.readFile(file, "utf8");
+  } catch (err) {
+    // Nothing there yet — the first write has nothing to save.
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw err;
+  }
+
+  const dir = backupDirFor(file);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, `${backupStamp()}.json`), previous, "utf8");
+
+  // The names sort chronologically, so the oldest ones are simply at the front.
+  const stamps = (await fs.readdir(dir)).filter((n) => n.endsWith(".json")).sort();
+  for (const stale of stamps.slice(0, Math.max(0, stamps.length - BACKUP_KEEP))) {
+    await fs.rm(path.join(dir, stale), { force: true });
+  }
+}
+
+/** One saved version. `stamp` is the file name without extension. */
+export type BackupEntry = { stamp: string; savedAt: string; bytes: number };
+
+/**
+ * Which files a backup can address. Everything else is rejected, so a target
+ * coming in over the API can never point outside `data/`.
+ */
+export type BackupTarget = { kind: "cv" } | { kind: "design" } | { kind: "application"; slug: string };
+
+export function parseBackupTarget(raw: string): BackupTarget | null {
+  if (raw === "cv") return { kind: "cv" };
+  if (raw === "design") return { kind: "design" };
+  const application = raw.match(/^application:(.+)$/);
+  if (application && isSafeSlug(application[1])) {
+    return { kind: "application", slug: application[1] };
+  }
+  return null;
+}
+
+function targetPath(target: BackupTarget): string {
+  if (target.kind === "cv") return CV_PATH;
+  if (target.kind === "design") return DESIGN_PATH;
+  return applicationPath(target.slug);
+}
+
+/** Saved versions of a file, newest first. */
+export async function listBackups(target: BackupTarget): Promise<BackupEntry[]> {
+  const dir = backupDirFor(targetPath(target));
+  let names: string[];
+  try {
+    names = await fs.readdir(dir);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw err;
+  }
+
+  const entries: BackupEntry[] = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const stamp = name.replace(/\.json$/, "");
+    const stat = await fs.stat(path.join(dir, name));
+    entries.push({ stamp, savedAt: stampToIso(stamp), bytes: stat.size });
+  }
+  return entries.sort((a, b) => b.stamp.localeCompare(a.stamp));
+}
+
+/** Undoes the replacement of `:` and `.` that `backupStamp()` performed. */
+function stampToIso(stamp: string): string {
+  const match = stamp.match(/^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/);
+  return match ? `${match[1]}T${match[2]}:${match[3]}:${match[4]}.${match[5]}Z` : stamp;
+}
+
+/**
+ * Puts a saved version back. Goes through `writeJson`, so the state being
+ * replaced is saved in turn — a restore you did not mean is therefore
+ * undoable as well. Validation happens before the write: a backup that no
+ * longer matches the schema fails loudly instead of breaking every page
+ * afterwards.
+ */
+export async function restoreBackup(target: BackupTarget, stamp: string): Promise<void> {
+  if (!/^[0-9A-Za-z-]+$/.test(stamp)) throw new Error(`Ungültiger Zeitstempel: ${stamp}`);
+
+  const file = targetPath(target);
+  const source = path.join(backupDirFor(file), `${stamp}.json`);
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(source, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error("Diese Sicherung gibt es nicht mehr.");
+    }
+    throw err;
+  }
+
+  const schema =
+    target.kind === "cv" ? CvSchema : target.kind === "design" ? DesignSchema : ApplicationSchema;
+  const parsed = schema.safeParse(JSON.parse(raw));
+  if (!parsed.success) {
+    throw new StoreValidationError(path.relative(process.cwd(), source), parsed.error);
+  }
+
+  await writeJson(file, parsed.data);
 }
 
 /** Master CV. Returns an empty CV when none exists yet. */

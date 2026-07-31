@@ -1,0 +1,128 @@
+{
+  "basics": {
+    "fullName": "Erika Beispiel",
+    "headline": "Senior Backend Engineer",
+    "email": "erika@example.com",
+    "phone": "+49 151 0000000",
+    "location": "Hamburg, Deutschland",
+    "summary": "Aus data/fixtures/import.json — kein echter API-Aufruf.",
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/beispiel"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://linkedin.com/in/beispiel"
+      }
+    ]
+  },
+  "experience": [
+    {
+      "company": "Kontor Systems GmbH",
+      "role": "Senior Backend Engineer",
+      "location": "Hamburg",
+      "startDate": "2021-03",
+      "endDate": null,
+      "summary": "Abrechnungsplattform für rund 400 Geschäftskunden.",
+      "bullets": [
+        "Rechnungslauf von einem Nacht-Batch auf einen ereignisgesteuerten Ablauf umgestellt; Laufzeit von 6 h auf 20 min gesenkt",
+        "Idempotenzschlüssel für alle Zahlungs-Endpunkte eingeführt, Doppelbuchungen im Support-Ticketaufkommen auf null reduziert",
+        "Drei Entwickler:innen fachlich angeleitet, inklusive On-Call-Übergabe"
+      ],
+      "technologies": [
+        "TypeScript",
+        "Node.js",
+        "PostgreSQL",
+        "Kafka",
+        "AWS"
+      ]
+    },
+    {
+      "company": "Nordlicht Software",
+      "role": "Backend Engineer",
+      "location": "Kiel",
+      "startDate": "2017-08",
+      "endDate": "2021-02",
+      "summary": null,
+      "bullets": [
+        "REST-API für die Lageranbindung von 30 Filialen entworfen und betrieben",
+        "Testabdeckung des Kernmoduls von 40 % auf 85 % gebracht"
+      ],
+      "technologies": [
+        "Python",
+        "Django",
+        "PostgreSQL",
+        "Docker"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Universität Hamburg",
+      "degree": "B.Sc.",
+      "field": "Informatik",
+      "startDate": "2013-10",
+      "endDate": "2017-06",
+      "details": [
+        "Schwerpunkt verteilte Systeme",
+        "Abschlussarbeit über Konsensverfahren"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "category": "Sprachen",
+      "items": [
+        "TypeScript",
+        "Python",
+        "Go",
+        "SQL"
+      ]
+    },
+    {
+      "category": "Infrastruktur",
+      "items": [
+        "AWS",
+        "Docker",
+        "Terraform",
+        "Kafka"
+      ]
+    },
+    {
+      "category": "Arbeitsweise",
+      "items": [
+        "Code Review",
+        "On-Call",
+        "Domain-Driven Design"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "ledger-check",
+      "description": "Open-Source-Werkzeug, das doppelte Buchungen in Kontoauszügen findet.",
+      "url": "https://github.com/beispiel/ledger-check",
+      "technologies": [
+        "Go"
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Deutsch",
+      "level": "Muttersprache"
+    },
+    {
+      "name": "Englisch",
+      "level": "C1"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "AWS Solutions Architect Associate",
+      "issuer": "Amazon Web Services",
+      "date": "2022-05"
+    }
+  ]
+}

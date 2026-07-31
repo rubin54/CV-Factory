@@ -4,9 +4,12 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 
-# Secrets — niemals committen
+# Secrets — never commit these
 .env
 .env.local
 
-# Erzeugte PDFs
+# Generated PDFs
 export/
+
+# Automatic backups: local safety net, not project state
+data/.backups/

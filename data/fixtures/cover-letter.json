@@ -1,0 +1,10 @@
+{
+  "subject": "Bewerbung als Platform Engineer",
+  "salutation": "Sehr geehrtes Team,",
+  "body": [
+    "Dieser Absatz kommt aus data/fixtures/cover-letter.json. Es wurde kein API-Aufruf gemacht.",
+    "Zweiter Absatz, damit Umbruch und Abstaende im Anschreiben-Layout pruefbar sind.",
+    "Dritter Absatz zum Abschluss."
+  ],
+  "closing": "Mit freundlichen Gruessen"
+}
